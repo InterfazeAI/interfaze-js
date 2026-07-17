@@ -27,6 +27,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "qa:live": "tsx scripts/qa-live.ts",
+    "prepare": "tsup",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
