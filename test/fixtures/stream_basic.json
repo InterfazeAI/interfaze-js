@@ -1,0 +1,112 @@
+[
+  {
+    "id": "req-2c065d1a-29dc-4d0c-a89d-327c6d344955",
+    "type": "text-delta",
+    "object": "chat.completion.chunk",
+    "created": 1784164335,
+    "model": "interfaze-beta",
+    "choices": [
+      {
+        "index": 0,
+        "delta": {
+          "content": "<precontext> [{\"name\":\"code_execute\",\"result\":{\"code_script\":\"for i in range(1, 6):\\n    print(i)\",\"language\":\"python\",\"output\":\"1\\n2\\n3\\n4\\n5\\n\",\"is_action_tool\":true}}] </precontext>"
+        },
+        "finish_reason": null
+      }
+    ]
+  },
+  {
+    "id": "req-2c065d1a-29dc-4d0c-a89d-327c6d344955",
+    "type": "text-delta",
+    "object": "chat.completion.chunk",
+    "created": 1784164335,
+    "model": "interfaze-beta",
+    "choices": [
+      {
+        "index": 0,
+        "delta": {
+          "content": "1"
+        },
+        "finish_reason": null
+      }
+    ]
+  },
+  {
+    "id": "req-2c065d1a-29dc-4d0c-a89d-327c6d344955",
+    "type": "text-delta",
+    "object": "chat.completion.chunk",
+    "created": 1784164335,
+    "model": "interfaze-beta",
+    "choices": [
+      {
+        "index": 0,
+        "delta": {
+          "content": "\n2"
+        },
+        "finish_reason": null
+      }
+    ]
+  },
+  {
+    "id": "req-2c065d1a-29dc-4d0c-a89d-327c6d344955",
+    "type": "text-delta",
+    "object": "chat.completion.chunk",
+    "created": 1784164335,
+    "model": "interfaze-beta",
+    "choices": [
+      {
+        "index": 0,
+        "delta": {
+          "content": "\n"
+        },
+        "finish_reason": null
+      }
+    ]
+  },
+  {
+    "id": "req-2c065d1a-29dc-4d0c-a89d-327c6d344955",
+    "type": "text-delta",
+    "object": "chat.completion.chunk",
+    "created": 1784164335,
+    "model": "interfaze-beta",
+    "choices": [
+      {
+        "index": 0,
+        "delta": {
+          "content": "3"
+        },
+        "finish_reason": null
+      }
+    ]
+  },
+  {
+    "id": "req-2c065d1a-29dc-4d0c-a89d-327c6d344955",
+    "type": "text-delta",
+    "object": "chat.completion.chunk",
+    "created": 1784164335,
+    "model": "interfaze-beta",
+    "choices": [
+      {
+        "index": 0,
+        "delta": {
+          "content": "\n4\n5"
+        },
+        "finish_reason": null
+      }
+    ]
+  },
+  {
+    "id": "req-2c065d1a-29dc-4d0c-a89d-327c6d344955",
+    "type": "text-delta",
+    "object": "chat.completion.chunk",
+    "created": 1784164335,
+    "model": "interfaze-beta",
+    "choices": [
+      {
+        "index": 0,
+        "delta": {},
+        "finish_reason": "stop"
+      }
+    ]
+  }
+]

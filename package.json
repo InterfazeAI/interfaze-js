@@ -1,0 +1,49 @@
+{
+  "name": "interfaze",
+  "version": "0.1.0",
+  "description": "Official Interfaze SDK — a typed wrapper over the OpenAI SDK for the Interfaze API (deterministic task model).",
+  "license": "MIT",
+  "author": "Interfaze",
+  "homepage": "https://interfaze.ai",
+  "repository": { "type": "git", "url": "git+https://github.com/interfaze/interfaze-js.git" },
+  "keywords": ["interfaze", "openai", "ai", "ocr", "speech-to-text", "web-search", "sdk"],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+      "require": { "types": "./dist/index.d.cts", "default": "./dist/index.cjs" }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "sideEffects": false,
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "qa:live": "tsx scripts/qa-live.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "openai": "~6.47.0"
+  },
+  "peerDependencies": {
+    "zod": "^3.23.0 || ^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "zod": { "optional": true }
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "tsup": "^8",
+    "tsx": "^4",
+    "typescript": "^5",
+    "vitest": "^2",
+    "zod": "^4"
+  }
+}

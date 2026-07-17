@@ -1,0 +1,46 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { Interfaze, InterfazeError } from "../src/index.js";
+
+describe("client construction", () => {
+  const saved = process.env["INTERFAZE_API_KEY"];
+  beforeEach(() => {
+    delete process.env["INTERFAZE_API_KEY"];
+  });
+  afterEach(() => {
+    if (saved === undefined) delete process.env["INTERFAZE_API_KEY"];
+    else process.env["INTERFAZE_API_KEY"] = saved;
+  });
+
+  it("throws a clear error when no API key is available", () => {
+    expect(() => new Interfaze({})).toThrow(InterfazeError);
+    expect(() => new Interfaze({})).toThrow(/INTERFAZE_API_KEY/);
+  });
+
+  it("accepts an explicit apiKey", () => {
+    const i = new Interfaze({ apiKey: "sk-test" });
+    expect(i).toBeInstanceOf(Interfaze);
+  });
+
+  it("reads INTERFAZE_API_KEY from the environment", () => {
+    process.env["INTERFAZE_API_KEY"] = "sk-env";
+    expect(() => new Interfaze({})).not.toThrow();
+  });
+
+  it("exposes only the curated surface (no 404-prone resources)", () => {
+    const i = new Interfaze({ apiKey: "sk-test" }) as unknown as Record<string, unknown>;
+    expect(i["chat"]).toBeDefined();
+    expect(i["models"]).toBeDefined();
+    expect(i["tasks"]).toBeDefined();
+    expect(i["embeddings"]).toBeUndefined();
+    expect(i["responses"]).toBeUndefined();
+    expect(i["audio"]).toBeUndefined();
+    expect(i["images"]).toBeUndefined();
+    expect(i["batches"]).toBeUndefined();
+  });
+
+  it("still exposes the raw OpenAI client as an escape hatch", () => {
+    const i = new Interfaze({ apiKey: "sk-test" });
+    expect(i.openai).toBeDefined();
+    expect(i.openai.chat.completions).toBeDefined();
+  });
+});

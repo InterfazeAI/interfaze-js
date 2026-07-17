@@ -1,0 +1,22 @@
+{
+  "id": "req-10d656bf-19c4-48fe-ab1c-cac7b89d27bb",
+  "object": "chat.completion",
+  "created": 1784164296,
+  "model": "interfaze-beta",
+  "usage": {
+    "prompt_tokens": 220,
+    "completion_tokens": 3,
+    "total_tokens": 223
+  },
+  "vcache": false,
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Hi!"
+      },
+      "finish_reason": "stop"
+    }
+  ]
+}

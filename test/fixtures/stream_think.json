@@ -1,0 +1,144 @@
+[
+  {
+    "id": "req-b407a066-8e96-4265-be97-091b66c32967",
+    "type": "text-delta",
+    "object": "chat.completion.chunk",
+    "created": 1784164342,
+    "model": "interfaze-beta",
+    "choices": [
+      {
+        "index": 0,
+        "delta": {
+          "content": "<think>"
+        },
+        "finish_reason": null
+      }
+    ]
+  },
+  {
+    "id": "req-b407a066-8e96-4265-be97-091b66c32967",
+    "type": "text-delta",
+    "object": "chat.completion.chunk",
+    "created": 1784164342,
+    "model": "interfaze-beta",
+    "choices": [
+      {
+        "index": 0,
+        "delta": {
+          "content": "The sky is blue due to a phenomenon called **Rayleigh scattering**. As sunlight reaches Earth'"
+        },
+        "finish_reason": null
+      }
+    ]
+  },
+  {
+    "id": "req-b407a066-8e96-4265-be97-091b66c32967",
+    "type": "text-delta",
+    "object": "chat.completion.chunk",
+    "created": 1784164343,
+    "model": "interfaze-beta",
+    "choices": [
+      {
+        "index": 0,
+        "delta": {
+          "content": "s atmosphere, it is scattered in all directions by the gases and particles in the air. Blue light travels in shorter, smaller"
+        },
+        "finish_reason": null
+      }
+    ]
+  },
+  {
+    "id": "req-b407a066-8e96-4265-be97-091b66c32967",
+    "type": "text-delta",
+    "object": "chat.completion.chunk",
+    "created": 1784164343,
+    "model": "interfaze-beta",
+    "choices": [
+      {
+        "index": 0,
+        "delta": {
+          "content": " waves and is scattered more than the other colors, which is why we see a blue sky."
+        },
+        "finish_reason": null
+      }
+    ]
+  },
+  {
+    "id": "req-b407a066-8e96-4265-be97-091b66c32967",
+    "type": "text-delta",
+    "object": "chat.completion.chunk",
+    "created": 1784164343,
+    "model": "interfaze-beta",
+    "choices": [
+      {
+        "index": 0,
+        "delta": {
+          "content": "</think>"
+        },
+        "finish_reason": null
+      }
+    ]
+  },
+  {
+    "id": "req-b407a066-8e96-4265-be97-091b66c32967",
+    "type": "text-delta",
+    "object": "chat.completion.chunk",
+    "created": 1784164344,
+    "model": "interfaze-beta",
+    "choices": [
+      {
+        "index": 0,
+        "delta": {
+          "content": "The sky is blue because of **Rayleigh scattering**. As sunlight reaches Earth'"
+        },
+        "finish_reason": null
+      }
+    ]
+  },
+  {
+    "id": "req-b407a066-8e96-4265-be97-091b66c32967",
+    "type": "text-delta",
+    "object": "chat.completion.chunk",
+    "created": 1784164344,
+    "model": "interfaze-beta",
+    "choices": [
+      {
+        "index": 0,
+        "delta": {
+          "content": "s atmosphere, it is scattered in all directions by the gases and particles in the air; blue light travels in shorter, smaller"
+        },
+        "finish_reason": null
+      }
+    ]
+  },
+  {
+    "id": "req-b407a066-8e96-4265-be97-091b66c32967",
+    "type": "text-delta",
+    "object": "chat.completion.chunk",
+    "created": 1784164344,
+    "model": "interfaze-beta",
+    "choices": [
+      {
+        "index": 0,
+        "delta": {
+          "content": " waves and is scattered more than other colors, making it more visible to our eyes."
+        },
+        "finish_reason": null
+      }
+    ]
+  },
+  {
+    "id": "req-b407a066-8e96-4265-be97-091b66c32967",
+    "type": "text-delta",
+    "object": "chat.completion.chunk",
+    "created": 1784164345,
+    "model": "interfaze-beta",
+    "choices": [
+      {
+        "index": 0,
+        "delta": {},
+        "finish_reason": "stop"
+      }
+    ]
+  }
+]
