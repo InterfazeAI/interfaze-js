@@ -133,7 +133,7 @@ are rejected client-side (Interfaze does not accept them).
 - Interfaze implements `chat.completions` and `models`. Other OpenAI endpoints
   (`embeddings`, `responses`, `audio.transcriptions`, …) are intentionally not exposed.
 - `temperature` ≤ 1, `max_tokens` ≤ 32000, `top_p` ≤ 1 (values above → 400).
-- Use `max_tokens` (not `max_completion_tokens`) to bound output length.
+- Both `max_tokens` and `max_completion_tokens` bound output length (`max_tokens` wins if both set).
 - `n`, `seed`, `stop`, penalties, `logprobs`, `tool_choice`, `top_k` are ignored by Interfaze.
 - The underlying OpenAI client is available at `interfaze.openai` as an escape hatch.
 
