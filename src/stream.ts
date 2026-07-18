@@ -61,6 +61,29 @@ export class InterfazeChatCompletionStream implements AsyncIterable<ChatCompleti
     this.#done = true;
   }
 
+  /**
+   * Yield visible text only, stripping `<think>`/`<precontext>` across chunk boundaries.
+   * Use this (not the raw chunk iterator) for live rendering; `reasoning`/`precontext`
+   * remain available on `finalChatCompletion()`.
+   */
+  async *textDeltas(): AsyncGenerator<string> {
+    if (this.#started) throw new InterfazeError("This stream has already been consumed.");
+    this.#started = true;
+    const filter = new SideChannelFilter();
+    const raw = await this.#getRaw();
+    for await (const chunk of raw) {
+      this.#accumulate(chunk);
+      const piece = chunk.choices?.[0]?.delta?.content;
+      if (typeof piece === "string" && piece) {
+        const visible = filter.feed(piece);
+        if (visible) yield visible;
+      }
+    }
+    const tail = filter.flush();
+    if (tail) yield tail;
+    this.#done = true;
+  }
+
   #accumulate(chunk: ChatCompletionChunk): void {
     if (!this.#id && chunk.id) this.#id = chunk.id;
     if (!this.#model && chunk.model) this.#model = chunk.model;
@@ -154,4 +177,69 @@ export function stripSideChannels(content: string): {
   if (thinks.length) out.reasoning = thinks.join("\n");
   if (pre.length) out.precontext = pre;
   return out;
+}
+
+const SIDE_OPEN = ["<think>", "<precontext>"] as const;
+const SIDE_CLOSE: Record<string, string> = { "<think>": "</think>", "<precontext>": "</precontext>" };
+
+function suffixPrefixLen(s: string, tag: string): number {
+  for (let k = Math.min(s.length, tag.length - 1); k > 0; k--) {
+    if (s.slice(s.length - k) === tag.slice(0, k)) return k;
+  }
+  return 0;
+}
+
+/** Strips inline `<think>`/`<precontext>` blocks from streamed content, chunk by chunk. */
+class SideChannelFilter {
+  #buf = "";
+  #close: string | undefined;
+
+  feed(text: string): string {
+    this.#buf += text;
+    const out: string[] = [];
+    while (this.#buf) {
+      if (this.#close === undefined) {
+        const lt = this.#buf.indexOf("<");
+        if (lt === -1) {
+          out.push(this.#buf);
+          this.#buf = "";
+          break;
+        }
+        if (lt > 0) {
+          out.push(this.#buf.slice(0, lt));
+          this.#buf = this.#buf.slice(lt);
+        }
+        const opened = SIDE_OPEN.find((t) => this.#buf.startsWith(t));
+        if (opened) {
+          this.#close = SIDE_CLOSE[opened];
+          this.#buf = this.#buf.slice(opened.length);
+          continue;
+        }
+        if (SIDE_OPEN.some((t) => t.startsWith(this.#buf))) break;
+        out.push("<");
+        this.#buf = this.#buf.slice(1);
+      } else {
+        const close = this.#close;
+        const end = this.#buf.indexOf(close);
+        if (end === -1) {
+          const keep = suffixPrefixLen(this.#buf, close);
+          this.#buf = keep ? this.#buf.slice(this.#buf.length - keep) : "";
+          break;
+        }
+        this.#buf = this.#buf.slice(end + close.length);
+        this.#close = undefined;
+      }
+    }
+    return out.join("");
+  }
+
+  flush(): string {
+    if (this.#close !== undefined) {
+      this.#buf = "";
+      return "";
+    }
+    const rest = this.#buf;
+    this.#buf = "";
+    return rest;
+  }
 }

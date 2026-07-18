@@ -84,22 +84,25 @@ const data = JSON.parse(res.choices[0].message.content!);
 
 ## Streaming
 
-Use `.stream()` for a streaming helper that tolerates Interfaze's stream format and surfaces
-`reasoning` / `precontext`:
+For live rendering, iterate `textDeltas()` — it yields visible text only, stripping Interfaze's
+inline `<think>` / `<precontext>` side-channels:
 
 ```ts
 const stream = interfaze.chat.completions.stream({
   messages: [{ role: "user", content: "Tell me a story." }],
 });
-for await (const chunk of stream) {
-  process.stdout.write(chunk.choices[0]?.delta?.content ?? "");
+for await (const text of stream.textDeltas()) {
+  process.stdout.write(text);
 }
 const final = await stream.finalChatCompletion();
 console.log(final.reasoning, final.precontext);
 ```
 
-> Prefer `.stream()` over `create({ stream: true })` for the rich helper — the OpenAI SDK's
-> own `.stream()` throws `missing role for choice 0` against Interfaze; ours does not.
+> Iterating the stream directly (`for await (const chunk of stream)`) or the plain
+> `create({ stream: true })` path yields **raw** chunks whose `delta.content` still contains the
+> `<think>` / `<precontext>` tags — use `textDeltas()` for anything user-facing. `.stream()` also
+> tolerates Interfaze's role-less deltas (the OpenAI SDK's own `.stream()` throws
+> `missing role for choice 0`) and surfaces `reasoning` / `precontext` on `finalChatCompletion()`.
 
 ## Inputs
 

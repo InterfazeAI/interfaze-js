@@ -4,11 +4,19 @@ import { fixture, mockInterfaze, sseResponse } from "./helpers.js";
 const streamBasic = fixture<unknown[]>("stream_basic.json"); // role-less chunks; chunk 0 has a <precontext> block
 const streamThink = fixture<unknown[]>("stream_think.json"); // contains <think>, no <precontext>
 
+const mkChunk = (delta: object, finish: string | null = null) => ({
+  id: "req-x",
+  object: "chat.completion.chunk",
+  created: 1,
+  model: "interfaze-beta",
+  choices: [{ index: 0, delta, finish_reason: finish }],
+});
+
 // A plain stream with NO side-channels (neither <think> nor <precontext>) — the accumulator must not hang.
 const plainChunks = [
-  { id: "req-x", object: "chat.completion.chunk", created: 1, model: "interfaze-beta", choices: [{ index: 0, delta: { content: "Hello " }, finish_reason: null }] },
-  { id: "req-x", object: "chat.completion.chunk", created: 1, model: "interfaze-beta", choices: [{ index: 0, delta: { content: "world" }, finish_reason: null }] },
-  { id: "req-x", object: "chat.completion.chunk", created: 1, model: "interfaze-beta", choices: [{ index: 0, delta: {}, finish_reason: "stop" }] },
+  mkChunk({ content: "Hello " }),
+  mkChunk({ content: "world" }),
+  mkChunk({}, "stop"),
 ];
 
 describe("streaming accumulator", () => {
@@ -62,5 +70,48 @@ describe("streaming accumulator", () => {
       .stream({ messages: [{ role: "user", content: "hi" }] })
       .finalChatCompletion();
     expect(final.choices[0]!.message.content).toBe("Hello world");
+  });
+
+  it("textDeltas() strips <precontext> and yields only visible text", async () => {
+    const { interfaze } = mockInterfaze(() => sseResponse(streamBasic));
+    const s = interfaze.chat.completions.stream({ messages: [{ role: "user", content: "count" }] });
+    let text = "";
+    for await (const piece of s.textDeltas()) text += piece;
+    expect(text).not.toContain("<precontext>");
+    expect(text).toBe("1\n2\n3\n4\n5");
+  });
+
+  it("textDeltas() strips <think> and yields only the answer", async () => {
+    const { interfaze } = mockInterfaze(() => sseResponse(streamThink));
+    const s = interfaze.chat.completions.stream({ reasoning_effort: "high", messages: [{ role: "user", content: "why" }] });
+    let text = "";
+    for await (const piece of s.textDeltas()) text += piece;
+    expect(text).not.toContain("<think>");
+    expect(text).toContain("because of"); // from the visible answer
+    expect(text).not.toContain("due to"); // only in the suppressed <think> body
+  });
+
+  it("textDeltas() buffers a tag split across chunks", async () => {
+    const splitTag = [
+      mkChunk({ content: "Hello <pre" }),
+      mkChunk({ content: 'context>[{"name":"ocr","result":1}]</precon' }),
+      mkChunk({ content: "text> world" }),
+      mkChunk({}, "stop"),
+    ];
+    const { interfaze } = mockInterfaze(() => sseResponse(splitTag));
+    const s = interfaze.chat.completions.stream({ messages: [{ role: "user", content: "x" }] });
+    let text = "";
+    for await (const piece of s.textDeltas()) text += piece;
+    expect(text).not.toContain("precontext");
+    expect(text).toBe("Hello  world");
+  });
+
+  it("textDeltas() preserves a literal '<'", async () => {
+    const literals = [mkChunk({ content: "a < b and c " }), mkChunk({ content: "< d" }), mkChunk({}, "stop")];
+    const { interfaze } = mockInterfaze(() => sseResponse(literals));
+    const s = interfaze.chat.completions.stream({ messages: [{ role: "user", content: "x" }] });
+    let text = "";
+    for await (const piece of s.textDeltas()) text += piece;
+    expect(text).toBe("a < b and c < d");
   });
 });
