@@ -21,6 +21,7 @@ export class InterfazeChatCompletionStream implements AsyncIterable<ChatCompleti
   #openai: OpenAI;
   #body: Record<string, unknown>;
   #options: RequestOptions | undefined;
+  #stripFence: boolean;
 
   #started = false;
   #done = false;
@@ -34,10 +35,11 @@ export class InterfazeChatCompletionStream implements AsyncIterable<ChatCompleti
   #created = 0;
   #toolCalls = new Map<number, ToolCallAcc>();
 
-  constructor(openai: OpenAI, body: Record<string, unknown>, options?: RequestOptions) {
+  constructor(openai: OpenAI, body: Record<string, unknown>, options?: RequestOptions, stripFence = false) {
     this.#openai = openai;
     this.#body = body;
     this.#options = options;
+    this.#stripFence = stripFence;
   }
 
   #getRaw(): Promise<AsyncIterable<ChatCompletionChunk>> {
@@ -122,7 +124,8 @@ export class InterfazeChatCompletionStream implements AsyncIterable<ChatCompleti
   }
 
   #build(): InterfazeChatCompletion {
-    const { text, reasoning, precontext } = stripSideChannels(this.#content);
+    const { text: rawText, reasoning, precontext } = stripSideChannels(this.#content);
+    const text = this.#stripFence ? stripJsonFence(rawText) : rawText;
     const toolCalls = [...this.#toolCalls.values()].map((t) => ({
       id: t.id,
       type: "function" as const,
@@ -177,6 +180,13 @@ export function stripSideChannels(content: string): {
   if (thinks.length) out.reasoning = thinks.join("\n");
   if (pre.length) out.precontext = pre;
   return out;
+}
+
+/** Interfaze returns `json_object` content wrapped in a ```json fence; unwrap it. */
+export function stripJsonFence(content: string): string {
+  const t = content.trim();
+  if (!t.startsWith("```")) return content;
+  return t.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
 }
 
 const SIDE_OPEN = ["<think>", "<precontext>"] as const;

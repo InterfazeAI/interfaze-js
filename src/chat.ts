@@ -11,7 +11,7 @@ import { INTERFAZE_MODEL } from "./constants.js";
 import { InterfazeError } from "./errors.js";
 import { guardTag } from "./guard.js";
 import { emptyTaskSchema } from "./schema.js";
-import { InterfazeChatCompletionStream } from "./stream.js";
+import { InterfazeChatCompletionStream, stripJsonFence } from "./stream.js";
 import type {
   InterfazeChatCompletion,
   InterfazeChatCompletionCreateParamsNonStreaming,
@@ -29,13 +29,6 @@ export function toInterfaze(raw: ChatCompletion, opts: { stripFence: boolean }):
     if (msg && typeof msg.content === "string") msg.content = stripJsonFence(msg.content);
   }
   return r;
-}
-
-/** Interfaze returns `json_object` content wrapped in a ```json fence; unwrap it. */
-export function stripJsonFence(content: string): string {
-  const t = content.trim();
-  if (!t.startsWith("```")) return content;
-  return t.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
 }
 
 function injectTags(
@@ -129,8 +122,8 @@ export class InterfazeCompletions {
     params: Omit<InterfazeChatCompletionCreateParamsStreaming, "stream">,
     options?: RequestOptions,
   ): InterfazeChatCompletionStream {
-    const { body } = prepare({ ...params, stream: true } as InterfazeChatCompletionCreateParamsStreaming);
-    return new InterfazeChatCompletionStream(this.#openai, body, options);
+    const { body, stripFence } = prepare({ ...params, stream: true } as InterfazeChatCompletionCreateParamsStreaming);
+    return new InterfazeChatCompletionStream(this.#openai, body, options, stripFence);
   }
 }
 

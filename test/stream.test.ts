@@ -19,6 +19,13 @@ const plainChunks = [
   mkChunk({}, "stop"),
 ];
 
+const fencedJson = [
+  mkChunk({ content: "```json\n" }),
+  mkChunk({ content: '{"city": "Tokyo"}' }),
+  mkChunk({ content: "\n```" }),
+  mkChunk({}, "stop"),
+];
+
 describe("streaming accumulator", () => {
   it("iterates role-less chunks without throwing 'missing role'", async () => {
     const { interfaze } = mockInterfaze(() => sseResponse(streamBasic));
@@ -113,5 +120,23 @@ describe("streaming accumulator", () => {
     let text = "";
     for await (const piece of s.textDeltas()) text += piece;
     expect(text).toBe("a < b and c < d");
+  });
+
+  it("finalChatCompletion strips the json_object fence", async () => {
+    const { interfaze } = mockInterfaze(() => sseResponse(fencedJson));
+    const s = interfaze.chat.completions.stream({
+      messages: [{ role: "user", content: "json" }],
+      response_format: { type: "json_object" },
+    });
+    const content = (await s.finalChatCompletion()).choices[0]!.message.content!;
+    expect(content.startsWith("```")).toBe(false);
+    expect(JSON.parse(content)).toHaveProperty("city");
+  });
+
+  it("keeps a fence when response_format is not json_object", async () => {
+    const { interfaze } = mockInterfaze(() => sseResponse(fencedJson));
+    const s = interfaze.chat.completions.stream({ messages: [{ role: "user", content: "x" }] });
+    const content = (await s.finalChatCompletion()).choices[0]!.message.content!;
+    expect(content.startsWith("```")).toBe(true);
   });
 });
