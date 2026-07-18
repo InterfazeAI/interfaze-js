@@ -10,6 +10,7 @@ export const TASK_NAMES = [
   "scraper",
   "translate",
   "speech_to_text",
+  "forecast",
 ] as const;
 
 /** Guardrail categories (`ALL` enables everything). */

@@ -45,7 +45,18 @@ function injectTags(
 ): ChatCompletionMessageParam[] {
   const tags = [task, guard].filter(Boolean).join(" ");
   if (!tags) return messages.slice();
-  return [{ role: "system", content: tags }, ...messages];
+  const out = messages.slice();
+  const idx = out.findIndex((m) => m.role === "system");
+  const first = idx === -1 ? undefined : out[idx];
+  if (first && first.role === "system" && typeof first.content === "string") {
+    out[idx] = {
+      role: "system",
+      content: first.content ? `${tags}\n${first.content}` : tags,
+      ...(first.name ? { name: first.name } : {}),
+    };
+    return out;
+  }
+  return [{ role: "system", content: tags }, ...out];
 }
 
 function isNonEmptySchema(rf: unknown): boolean {

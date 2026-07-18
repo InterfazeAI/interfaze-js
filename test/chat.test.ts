@@ -30,6 +30,30 @@ describe("request serialization", () => {
     expect(systemContent(calls[0]!.body)).toContain("<guard>S1, S12_IMAGE</guard>");
   });
 
+  it("accepts `forecast` as a task", async () => {
+    const { interfaze, calls } = mockInterfaze(() => jsonResponse(basic));
+    await interfaze.chat.completions.create({ task: "forecast", messages: [{ role: "user", content: "x" }] });
+    expect(systemContent(calls[0]!.body)).toContain("<task>forecast</task>");
+  });
+
+  it("merges task/guard tags into an existing system message", async () => {
+    const { interfaze, calls } = mockInterfaze(() => jsonResponse(taskOcr));
+    await interfaze.chat.completions.create({
+      task: "ocr",
+      guard: ["S1"],
+      messages: [
+        { role: "system", content: "You are helpful." },
+        { role: "user", content: "x" },
+      ],
+    });
+    const msgs = calls[0]!.body!["messages"] as Array<{ role: string; content: string }>;
+    const systems = msgs.filter((m) => m.role === "system");
+    expect(systems).toHaveLength(1);
+    expect(systems[0]!.content).toContain("<task>ocr</task>");
+    expect(systems[0]!.content).toContain("<guard>S1</guard>");
+    expect(systems[0]!.content).toContain("You are helpful.");
+  });
+
   it("rejects a non-empty schema combined with a task (client-side, mirrors the server 400)", () => {
     const { interfaze } = mockInterfaze(() => jsonResponse(basic));
     // Argument-validation errors throw synchronously (programmer error), like guardTag().
