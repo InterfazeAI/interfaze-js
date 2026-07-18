@@ -76,7 +76,7 @@ export function file(
   assertAllowed(mime);
   const f: { file_data: string; filename?: string; format?: string } = { file_data: src };
   if (opts.filename) f.filename = opts.filename;
-  if (opts.format) f.format = opts.format;
+  if (mime) f.format = mime;
   return { type: "file", file: f } as ChatCompletionContentPart;
 }
 

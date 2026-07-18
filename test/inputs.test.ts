@@ -19,6 +19,22 @@ describe("input builders", () => {
     expect(part.file.filename).toBe("doc.pdf");
   });
 
+  it("file() forwards the computed MIME as format", () => {
+    const part = inputs.file("https://x.com/doc.pdf") as { file: { format?: string } };
+    expect(part.file.format).toBe("application/pdf");
+  });
+
+  it("video() forwards the mp4 MIME as format", () => {
+    const part = inputs.video("https://x.com/clip.mp4") as { type: string; file: { format?: string } };
+    expect(part.type).toBe("file");
+    expect(part.file.format).toBe("video/mp4");
+  });
+
+  it("file() omits format for an unknown extension", () => {
+    const part = inputs.file("https://x.com/page") as { file: { format?: string } };
+    expect(part.file.format).toBeUndefined();
+  });
+
   it("audio() uses input_audio (never the dead audio_url)", () => {
     const part = inputs.audio("https://x.com/a.wav") as { type: string; input_audio: { data: string; format: string } };
     expect(part.type).toBe("input_audio");
@@ -57,6 +73,9 @@ describe("input builders", () => {
     expect(inputs.autoPart("https://x.com/a.wav").type).toBe("input_audio");
     expect(inputs.autoPart("https://x.com/a.pdf").type).toBe("file");
     expect(inputs.autoPart("https://x.com/a.mp4").type).toBe("file");
+    expect((inputs.autoPart("https://x.com/a.mp4") as { file: { format?: string } }).file.format).toBe(
+      "video/mp4",
+    );
   });
 
   it("autoPart() forwards a data-URI audio format", () => {
