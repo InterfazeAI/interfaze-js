@@ -82,7 +82,9 @@ export function file(
 
 /** Audio part via `input_audio` (`audio_url` is a dead field in Interfaze). */
 export function audio(src: string, opts: { format?: string } = {}): ChatCompletionContentPart {
-  const format = opts.format ?? extOf(src) ?? "wav";
+  const mime = mimeFromDataUrl(src);
+  assertAllowed(mime ?? EXT_MIME[extOf(src) ?? ""]);
+  const format = opts.format ?? (mime ? mime.split("/")[1] : extOf(src)) ?? "wav";
   return { type: "input_audio", input_audio: { data: src, format } } as unknown as ChatCompletionContentPart;
 }
 
@@ -95,6 +97,6 @@ export function video(src: string, opts: { filename?: string } = {}): ChatComple
 export function autoPart(src: string, opts: { filename?: string; format?: string } = {}): ChatCompletionContentPart {
   const mime = opts.format ?? mimeFromDataUrl(src) ?? EXT_MIME[extOf(opts.filename ?? src) ?? ""];
   if (mime?.startsWith("image/")) return image(src);
-  if (mime?.startsWith("audio/")) return audio(src, opts.format ? { format: opts.format } : {});
+  if (mime?.startsWith("audio/")) return audio(src, { format: opts.format ?? mime.split("/")[1] });
   return file(src, opts);
 }

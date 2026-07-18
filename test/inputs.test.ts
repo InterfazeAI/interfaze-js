@@ -26,6 +26,15 @@ describe("input builders", () => {
     expect(part.input_audio.format).toBe("wav");
   });
 
+  it("audio() derives format from a data-URI mime subtype", () => {
+    const part = inputs.audio("data:audio/mpeg;base64,AAAA") as { input_audio: { format: string } };
+    expect(part.input_audio.format).toBe("mpeg");
+  });
+
+  it("audio() rejects a blacklisted data-URI", () => {
+    expect(() => inputs.audio("data:image/gif;base64,AAAA")).toThrow(InterfazeError);
+  });
+
   it("rejects blacklisted gif via URL", () => {
     expect(() => inputs.image("https://x.com/a.gif")).toThrow(InterfazeError);
   });
@@ -48,5 +57,11 @@ describe("input builders", () => {
     expect(inputs.autoPart("https://x.com/a.wav").type).toBe("input_audio");
     expect(inputs.autoPart("https://x.com/a.pdf").type).toBe("file");
     expect(inputs.autoPart("https://x.com/a.mp4").type).toBe("file");
+  });
+
+  it("autoPart() forwards a data-URI audio format", () => {
+    const part = inputs.autoPart("data:audio/mpeg;base64,AAAA") as { type: string; input_audio: { format: string } };
+    expect(part.type).toBe("input_audio");
+    expect(part.input_audio.format).toBe("mpeg");
   });
 });
