@@ -1,16 +1,16 @@
 import { Interfaze } from "interfaze";
 
-const interfaze = new Interfaze();
+const interfaze = new Interfaze({ showAdditionalInfo: true });
 
 const stream = interfaze.chat.completions.stream({
-  reasoning_effort: "high",
-  messages: [{ role: "user", content: "Explain why the sky is blue." }],
+  messages: [
+    { role: "user", content: "What are the latest developments in AI agents this week? Cite your sources." },
+  ],
 });
 
-for await (const chunk of stream) {
-  process.stdout.write(chunk.choices[0]?.delta?.content ?? "");
+for await (const text of stream.textDeltas()) {
+  process.stdout.write(text);
 }
 
 const final = await stream.finalChatCompletion();
-console.log("\n\nreasoning:", final.reasoning);
-console.log("precontext:", final.precontext);
+console.log("\n\nprecontext:", JSON.stringify(final.precontext, null, 2));
