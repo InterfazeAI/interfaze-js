@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import type { ClientOptions } from "openai";
 
 import { InterfazeChat } from "./chat.js";
-import { HEADERS, INTERFAZE_BASE_URL } from "./constants.js";
+import { DEFAULT_TIMEOUT_MS, HEADERS, INTERFAZE_BASE_URL } from "./constants.js";
 import { InterfazeError } from "./errors.js";
 import { Tasks } from "./tasks.js";
 
@@ -54,6 +54,7 @@ export class Interfaze {
       apiKey: resolvedKey,
       baseURL: baseURL ?? INTERFAZE_BASE_URL,
       defaultHeaders: headers,
+      timeout: rest.timeout ?? DEFAULT_TIMEOUT_MS,
     });
 
     this.chat = new InterfazeChat(this.openai);
