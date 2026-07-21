@@ -43,4 +43,14 @@ describe("client construction", () => {
     expect(i.openai).toBeDefined();
     expect(i.openai.chat.completions).toBeDefined();
   });
+
+  it("defaults the timeout above the server's 800s cap", () => {
+    const i = new Interfaze({ apiKey: "sk-test" });
+    expect((i.openai as unknown as { timeout: number }).timeout).toBe(900_000);
+  });
+
+  it("respects an explicit timeout", () => {
+    const i = new Interfaze({ apiKey: "sk-test", timeout: 30_000 });
+    expect((i.openai as unknown as { timeout: number }).timeout).toBe(30_000);
+  });
 });

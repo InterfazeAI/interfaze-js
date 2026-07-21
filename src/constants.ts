@@ -1,5 +1,6 @@
 export const INTERFAZE_BASE_URL = "https://api.interfaze.ai/v1";
 export const INTERFAZE_MODEL = "interfaze-beta";
+export const DEFAULT_TIMEOUT_MS = 900_000;
 
 /** Task names accepted in a `<task>…</task>` tag. */
 export const TASK_NAMES = [

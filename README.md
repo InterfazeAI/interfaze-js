@@ -135,6 +135,8 @@ are rejected client-side (Interfaze does not accept them).
 - `temperature` ≤ 1, `max_tokens` ≤ 32000, `top_p` ≤ 1 (values above → 400).
 - Both `max_tokens` and `max_completion_tokens` bound output length (`max_tokens` wins if both set).
 - `n`, `seed`, `stop`, penalties, `logprobs`, `tool_choice`, `top_k` are ignored by Interfaze.
+- Requests default to a 900s timeout (large OCR/document/vision jobs are slow); override with
+  `new Interfaze({ timeout: ... })` (milliseconds).
 - The underlying OpenAI client is available at `interfaze.openai` as an escape hatch.
 
 ## License
