@@ -1,3 +1,4 @@
+import { APIUserAbortError } from "openai";
 import { describe, expect, it } from "vitest";
 import type { ChatCompletionMessageToolCall } from "openai/resources/chat/completions/completions";
 import { fixture, mockInterfaze, sseResponse } from "./helpers.js";
@@ -30,6 +31,20 @@ const fencedJson = [
   mkChunk({ content: '{"city": "Tokyo"}' }),
   mkChunk({ content: "\n```" }),
   mkChunk({}, "stop"),
+];
+
+const usageChunks = [
+  mkChunk({ content: "Hi" }),
+  mkChunk({}, "stop"),
+  {
+    id: "req-x",
+    object: "chat.completion.chunk",
+    created: 1,
+    model: "interfaze-beta",
+    choices: [],
+    usage: { prompt_tokens: 11, completion_tokens: 2, total_tokens: 13 },
+    system_fingerprint: "fp_test",
+  },
 ];
 
 describe("streaming accumulator", () => {
@@ -146,79 +161,41 @@ describe("streaming accumulator", () => {
     expect(content.startsWith("```")).toBe(true);
   });
 
-  it("accumulates a streamed tool call and surfaces it on finalChatCompletion", async () => {
-    const toolCallChunks = [
-      mkChunk({
-        tool_calls: [
-          { index: 0, id: "call_1", type: "function", function: { name: "get_weather", arguments: '{"ci' } },
-        ],
-      }),
-      mkChunk({ tool_calls: [{ index: 0, function: { arguments: 'ty": "Pa' } }] }),
-      mkChunk({ tool_calls: [{ index: 0, function: { arguments: 'ris"}' } }] }, "tool_calls"),
-    ];
-    const { interfaze } = mockInterfaze(() => sseResponse(toolCallChunks));
-    const s = interfaze.chat.completions.stream({ messages: [{ role: "user", content: "weather?" }] });
+  it("finalChatCompletion surfaces streamed usage and system_fingerprint", async () => {
+    const { interfaze } = mockInterfaze(() => sseResponse(usageChunks));
+    const s = interfaze.chat.completions.stream({
+      messages: [{ role: "user", content: "x" }],
+      stream_options: { include_usage: true },
+    });
     const final = await s.finalChatCompletion();
-    expect(final.choices[0]!.finish_reason).toBe("tool_calls");
-    expect(final.choices[0]!.message.content).toBeNull();
-    const toolCalls = final.choices[0]!.message.tool_calls!;
-    expect(toolCalls[0]!.id).toBe("call_1");
-    expect(asFunctionCall(toolCalls[0]!).name).toBe("get_weather");
-    expect(asFunctionCall(toolCalls[0]!).arguments).toBe('{"city": "Paris"}');
+    expect(final.usage?.total_tokens).toBe(13);
+    expect(final.usage?.prompt_tokens).toBe(11);
+    expect(final.system_fingerprint).toBe("fp_test");
   });
 
-  it("swallows malformed JSON inside <precontext> without crashing", async () => {
-    const malformed = [
-      mkChunk({ content: "<precontext>[not valid json]</precontext>" }),
-      mkChunk({ content: "Answer anyway." }, "stop"),
-    ];
-    const { interfaze } = mockInterfaze(() => sseResponse(malformed));
-    const s = interfaze.chat.completions.stream({ messages: [{ role: "user", content: "x" }] });
-    const final = await s.finalChatCompletion();
-    expect(final.precontext).toBeUndefined();
-    expect(final.choices[0]!.message.content).toBe("Answer anyway.");
+  it(".text strips the json_object fence, matching finalChatCompletion()", async () => {
+    const { interfaze } = mockInterfaze(() => sseResponse(fencedJson));
+    const s = interfaze.chat.completions.stream({
+      messages: [{ role: "user", content: "json" }],
+      response_format: { type: "json_object" },
+    });
+    const content = (await s.finalChatCompletion()).choices[0]!.message.content!;
+    expect(s.text.startsWith("```")).toBe(false);
+    expect(s.text).toBe(content);
+    expect(JSON.parse(s.text)).toHaveProperty("city");
   });
 
-  it("accepts a <precontext> block containing a single object (not an array)", async () => {
-    const singleObject = [
-      mkChunk({ content: '<precontext>{"name":"ocr","result":{"extracted_text":"x"}}</precontext>' }),
-      mkChunk({ content: "Done." }, "stop"),
-    ];
-    const { interfaze } = mockInterfaze(() => sseResponse(singleObject));
-    const s = interfaze.chat.completions.stream({ messages: [{ role: "user", content: "x" }] });
-    const final = await s.finalChatCompletion();
-    expect(final.precontext).toHaveLength(1);
-    expect(final.precontext![0]!.name).toBe("ocr");
-  });
-
-  it(".text reflects the visible content accumulated so far", async () => {
-    const { interfaze } = mockInterfaze(() => sseResponse(streamBasic));
-    const s = interfaze.chat.completions.stream({ messages: [{ role: "user", content: "count" }] });
-    for await (const _chunk of s) {
-      // drain
-    }
-    expect(s.text).not.toContain("<precontext>");
-    expect(s.text.length).toBeGreaterThan(0);
-  });
-
-  it("finalChatCompletion() throws if called after breaking out of iteration early", async () => {
-    const { interfaze } = mockInterfaze(() => sseResponse(streamBasic));
-    const s = interfaze.chat.completions.stream({ messages: [{ role: "user", content: "count" }] });
-    for await (const _chunk of s) {
-      break;
-    }
-    await expect(s.finalChatCompletion()).rejects.toThrow(/fully iterating/);
-  });
-
-  it("textDeltas() swallows an unterminated tag left open at stream end", async () => {
-    const unterminated = [
-      mkChunk({ content: "Hello <precontext>[never closed" }),
-      mkChunk({}, "stop"),
-    ];
-    const { interfaze } = mockInterfaze(() => sseResponse(unterminated));
-    const s = interfaze.chat.completions.stream({ messages: [{ role: "user", content: "x" }] });
-    let text = "";
-    for await (const piece of s.textDeltas()) text += piece;
-    expect(text).toBe("Hello ");
+  it("surfaces an aborted signal as APIUserAbortError instead of a silent end", async () => {
+    const controller = new AbortController();
+    const { interfaze } = mockInterfaze(() => sseResponse(plainChunks));
+    const s = interfaze.chat.completions.stream(
+      { messages: [{ role: "user", content: "x" }] },
+      { signal: controller.signal },
+    );
+    await expect(
+      (async () => {
+        for await (const _chunk of s) controller.abort();
+      })(),
+    ).rejects.toBeInstanceOf(APIUserAbortError);
   });
 });

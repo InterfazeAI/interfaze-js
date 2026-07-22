@@ -1,4 +1,5 @@
 import type OpenAI from "openai";
+import { APIUserAbortError } from "openai";
 import type { ChatCompletionChunk } from "openai/resources/chat/completions/completions";
 
 import { InterfazeError } from "./errors.js";
@@ -33,6 +34,8 @@ export class InterfazeChatCompletionStream implements AsyncIterable<ChatCompleti
   #id = "";
   #model = "";
   #created = 0;
+  #usage: ChatCompletionChunk["usage"];
+  #systemFingerprint: string | undefined;
   #toolCalls = new Map<number, ToolCallAcc>();
 
   constructor(openai: OpenAI, body: Record<string, unknown>, options?: RequestOptions, stripFence = false) {
@@ -52,14 +55,24 @@ export class InterfazeChatCompletionStream implements AsyncIterable<ChatCompleti
     return this.#raw;
   }
 
+  #throwIfAborted(): void {
+    if (this.#options?.signal?.aborted) throw new APIUserAbortError();
+  }
+
   async *[Symbol.asyncIterator](): AsyncIterator<ChatCompletionChunk> {
     if (this.#started) throw new InterfazeError("This stream has already been consumed.");
     this.#started = true;
     const raw = await this.#getRaw();
-    for await (const chunk of raw) {
-      this.#accumulate(chunk);
-      yield chunk;
+    try {
+      for await (const chunk of raw) {
+        this.#accumulate(chunk);
+        yield chunk;
+      }
+    } catch (err) {
+      this.#throwIfAborted();
+      throw err;
     }
+    this.#throwIfAborted();
     this.#done = true;
   }
 
@@ -73,14 +86,20 @@ export class InterfazeChatCompletionStream implements AsyncIterable<ChatCompleti
     this.#started = true;
     const filter = new SideChannelFilter();
     const raw = await this.#getRaw();
-    for await (const chunk of raw) {
-      this.#accumulate(chunk);
-      const piece = chunk.choices?.[0]?.delta?.content;
-      if (typeof piece === "string" && piece) {
-        const visible = filter.feed(piece);
-        if (visible) yield visible;
+    try {
+      for await (const chunk of raw) {
+        this.#accumulate(chunk);
+        const piece = chunk.choices?.[0]?.delta?.content;
+        if (typeof piece === "string" && piece) {
+          const visible = filter.feed(piece);
+          if (visible) yield visible;
+        }
       }
+    } catch (err) {
+      this.#throwIfAborted();
+      throw err;
     }
+    this.#throwIfAborted();
     const tail = filter.flush();
     if (tail) yield tail;
     this.#done = true;
@@ -90,6 +109,8 @@ export class InterfazeChatCompletionStream implements AsyncIterable<ChatCompleti
     if (!this.#id && chunk.id) this.#id = chunk.id;
     if (!this.#model && chunk.model) this.#model = chunk.model;
     if (!this.#created && chunk.created) this.#created = chunk.created;
+    if (chunk.usage) this.#usage = chunk.usage;
+    if (chunk.system_fingerprint) this.#systemFingerprint = chunk.system_fingerprint;
     const choice = chunk.choices?.[0];
     if (!choice) return;
     const delta = choice.delta;
@@ -105,9 +126,10 @@ export class InterfazeChatCompletionStream implements AsyncIterable<ChatCompleti
     }
   }
 
-  /** Concatenated visible content (side-channel blocks removed). */
+  /** Concatenated visible content (side-channel blocks removed; json_object fence unwrapped). */
   get text(): string {
-    return stripSideChannels(this.#content).text;
+    const t = stripSideChannels(this.#content).text;
+    return this.#stripFence ? stripJsonFence(t) : t;
   }
 
   /** Drive the stream to completion (if not already) and return the assembled completion. */
@@ -115,7 +137,13 @@ export class InterfazeChatCompletionStream implements AsyncIterable<ChatCompleti
     if (!this.#started) {
       this.#started = true;
       const raw = await this.#getRaw();
-      for await (const chunk of raw) this.#accumulate(chunk);
+      try {
+        for await (const chunk of raw) this.#accumulate(chunk);
+      } catch (err) {
+        this.#throwIfAborted();
+        throw err;
+      }
+      this.#throwIfAborted();
       this.#done = true;
     } else if (!this.#done) {
       throw new InterfazeError("Call finalChatCompletion() after fully iterating the stream, or instead of iterating.");
@@ -147,6 +175,8 @@ export class InterfazeChatCompletionStream implements AsyncIterable<ChatCompleti
     } as unknown as InterfazeChatCompletion;
     if (reasoning) completion.reasoning = reasoning;
     if (precontext) completion.precontext = precontext;
+    if (this.#usage) completion.usage = this.#usage;
+    if (this.#systemFingerprint) completion.system_fingerprint = this.#systemFingerprint;
     return completion;
   }
 }
