@@ -1,6 +1,12 @@
 import { APIUserAbortError } from "openai";
 import { describe, expect, it } from "vitest";
+import type { ChatCompletionMessageToolCall } from "openai/resources/chat/completions/completions";
 import { fixture, mockInterfaze, sseResponse } from "./helpers.js";
+
+function asFunctionCall(call: ChatCompletionMessageToolCall) {
+  if (call.type !== "function") throw new Error("expected a function tool call");
+  return call.function;
+}
 
 const streamBasic = fixture<unknown[]>("stream_basic.json"); // role-less chunks; chunk 0 has a <precontext> block
 const streamThink = fixture<unknown[]>("stream_think.json"); // contains <think>, no <precontext>
