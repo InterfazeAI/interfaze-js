@@ -5,7 +5,7 @@
   "license": "MIT",
   "author": "Interfaze",
   "homepage": "https://interfaze.ai",
-  "repository": { "type": "git", "url": "git+https://github.com/interfaze/interfaze-js.git" },
+  "repository": { "type": "git", "url": "git+https://github.com/InterfazeAI/interfaze-js.git" },
   "keywords": ["interfaze", "openai", "ai", "ocr", "speech-to-text", "web-search", "sdk"],
   "type": "module",
   "main": "./dist/index.cjs",
