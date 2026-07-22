@@ -1,3 +1,4 @@
+import { APIUserAbortError } from "openai";
 import { describe, expect, it } from "vitest";
 import { fixture, mockInterfaze, sseResponse } from "./helpers.js";
 
@@ -24,6 +25,20 @@ const fencedJson = [
   mkChunk({ content: '{"city": "Tokyo"}' }),
   mkChunk({ content: "\n```" }),
   mkChunk({}, "stop"),
+];
+
+const usageChunks = [
+  mkChunk({ content: "Hi" }),
+  mkChunk({}, "stop"),
+  {
+    id: "req-x",
+    object: "chat.completion.chunk",
+    created: 1,
+    model: "interfaze-beta",
+    choices: [],
+    usage: { prompt_tokens: 11, completion_tokens: 2, total_tokens: 13 },
+    system_fingerprint: "fp_test",
+  },
 ];
 
 describe("streaming accumulator", () => {
@@ -138,5 +153,43 @@ describe("streaming accumulator", () => {
     const s = interfaze.chat.completions.stream({ messages: [{ role: "user", content: "x" }] });
     const content = (await s.finalChatCompletion()).choices[0]!.message.content!;
     expect(content.startsWith("```")).toBe(true);
+  });
+
+  it("finalChatCompletion surfaces streamed usage and system_fingerprint", async () => {
+    const { interfaze } = mockInterfaze(() => sseResponse(usageChunks));
+    const s = interfaze.chat.completions.stream({
+      messages: [{ role: "user", content: "x" }],
+      stream_options: { include_usage: true },
+    });
+    const final = await s.finalChatCompletion();
+    expect(final.usage?.total_tokens).toBe(13);
+    expect(final.usage?.prompt_tokens).toBe(11);
+    expect(final.system_fingerprint).toBe("fp_test");
+  });
+
+  it(".text strips the json_object fence, matching finalChatCompletion()", async () => {
+    const { interfaze } = mockInterfaze(() => sseResponse(fencedJson));
+    const s = interfaze.chat.completions.stream({
+      messages: [{ role: "user", content: "json" }],
+      response_format: { type: "json_object" },
+    });
+    const content = (await s.finalChatCompletion()).choices[0]!.message.content!;
+    expect(s.text.startsWith("```")).toBe(false);
+    expect(s.text).toBe(content);
+    expect(JSON.parse(s.text)).toHaveProperty("city");
+  });
+
+  it("surfaces an aborted signal as APIUserAbortError instead of a silent end", async () => {
+    const controller = new AbortController();
+    const { interfaze } = mockInterfaze(() => sseResponse(plainChunks));
+    const s = interfaze.chat.completions.stream(
+      { messages: [{ role: "user", content: "x" }] },
+      { signal: controller.signal },
+    );
+    await expect(
+      (async () => {
+        for await (const _chunk of s) controller.abort();
+      })(),
+    ).rejects.toBeInstanceOf(APIUserAbortError);
   });
 });
