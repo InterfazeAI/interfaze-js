@@ -75,3 +75,31 @@ export function systemContent(body: Record<string, unknown> | undefined): string
   const sys = messages.find((m) => m.role === "system");
   return typeof sys?.content === "string" ? sys.content : "";
 }
+
+/** Build a synthetic chat.completion body, for shapes not worth a fixture file. */
+export function completion(
+  content: unknown = "Hi!",
+  options: { finishReason?: string; toolCalls?: unknown[] } & Record<string, unknown> = {},
+): Record<string, unknown> {
+  const { finishReason = "stop", toolCalls, ...extra } = options;
+  const message: Record<string, unknown> = { role: "assistant", content, refusal: null };
+  if (toolCalls !== undefined) {
+    message["tool_calls"] = toolCalls;
+    message["content"] = null;
+  }
+  return {
+    id: "req-test",
+    object: "chat.completion",
+    created: 1_700_000_000,
+    model: "interfaze-beta",
+    choices: [{ index: 0, message, finish_reason: finishReason, logprobs: null }],
+    usage: { prompt_tokens: 5, completion_tokens: 3, total_tokens: 8 },
+    vcache: false,
+    ...extra,
+  };
+}
+
+/** Shape of a real Interfaze error response body's `error` field. */
+export function errorBody(message: string, type: string, code: string): Record<string, string> {
+  return { message, type, code };
+}

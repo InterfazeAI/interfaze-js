@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
+import type { ChatCompletionMessageToolCall } from "openai/resources/chat/completions/completions";
 import { fixture, mockInterfaze, sseResponse } from "./helpers.js";
+
+function asFunctionCall(call: ChatCompletionMessageToolCall) {
+  if (call.type !== "function") throw new Error("expected a function tool call");
+  return call.function;
+}
 
 const streamBasic = fixture<unknown[]>("stream_basic.json"); // role-less chunks; chunk 0 has a <precontext> block
 const streamThink = fixture<unknown[]>("stream_think.json"); // contains <think>, no <precontext>
@@ -138,5 +144,81 @@ describe("streaming accumulator", () => {
     const s = interfaze.chat.completions.stream({ messages: [{ role: "user", content: "x" }] });
     const content = (await s.finalChatCompletion()).choices[0]!.message.content!;
     expect(content.startsWith("```")).toBe(true);
+  });
+
+  it("accumulates a streamed tool call and surfaces it on finalChatCompletion", async () => {
+    const toolCallChunks = [
+      mkChunk({
+        tool_calls: [
+          { index: 0, id: "call_1", type: "function", function: { name: "get_weather", arguments: '{"ci' } },
+        ],
+      }),
+      mkChunk({ tool_calls: [{ index: 0, function: { arguments: 'ty": "Pa' } }] }),
+      mkChunk({ tool_calls: [{ index: 0, function: { arguments: 'ris"}' } }] }, "tool_calls"),
+    ];
+    const { interfaze } = mockInterfaze(() => sseResponse(toolCallChunks));
+    const s = interfaze.chat.completions.stream({ messages: [{ role: "user", content: "weather?" }] });
+    const final = await s.finalChatCompletion();
+    expect(final.choices[0]!.finish_reason).toBe("tool_calls");
+    expect(final.choices[0]!.message.content).toBeNull();
+    const toolCalls = final.choices[0]!.message.tool_calls!;
+    expect(toolCalls[0]!.id).toBe("call_1");
+    expect(asFunctionCall(toolCalls[0]!).name).toBe("get_weather");
+    expect(asFunctionCall(toolCalls[0]!).arguments).toBe('{"city": "Paris"}');
+  });
+
+  it("swallows malformed JSON inside <precontext> without crashing", async () => {
+    const malformed = [
+      mkChunk({ content: "<precontext>[not valid json]</precontext>" }),
+      mkChunk({ content: "Answer anyway." }, "stop"),
+    ];
+    const { interfaze } = mockInterfaze(() => sseResponse(malformed));
+    const s = interfaze.chat.completions.stream({ messages: [{ role: "user", content: "x" }] });
+    const final = await s.finalChatCompletion();
+    expect(final.precontext).toBeUndefined();
+    expect(final.choices[0]!.message.content).toBe("Answer anyway.");
+  });
+
+  it("accepts a <precontext> block containing a single object (not an array)", async () => {
+    const singleObject = [
+      mkChunk({ content: '<precontext>{"name":"ocr","result":{"extracted_text":"x"}}</precontext>' }),
+      mkChunk({ content: "Done." }, "stop"),
+    ];
+    const { interfaze } = mockInterfaze(() => sseResponse(singleObject));
+    const s = interfaze.chat.completions.stream({ messages: [{ role: "user", content: "x" }] });
+    const final = await s.finalChatCompletion();
+    expect(final.precontext).toHaveLength(1);
+    expect(final.precontext![0]!.name).toBe("ocr");
+  });
+
+  it(".text reflects the visible content accumulated so far", async () => {
+    const { interfaze } = mockInterfaze(() => sseResponse(streamBasic));
+    const s = interfaze.chat.completions.stream({ messages: [{ role: "user", content: "count" }] });
+    for await (const _chunk of s) {
+      // drain
+    }
+    expect(s.text).not.toContain("<precontext>");
+    expect(s.text.length).toBeGreaterThan(0);
+  });
+
+  it("finalChatCompletion() throws if called after breaking out of iteration early", async () => {
+    const { interfaze } = mockInterfaze(() => sseResponse(streamBasic));
+    const s = interfaze.chat.completions.stream({ messages: [{ role: "user", content: "count" }] });
+    for await (const _chunk of s) {
+      break;
+    }
+    await expect(s.finalChatCompletion()).rejects.toThrow(/fully iterating/);
+  });
+
+  it("textDeltas() swallows an unterminated tag left open at stream end", async () => {
+    const unterminated = [
+      mkChunk({ content: "Hello <precontext>[never closed" }),
+      mkChunk({}, "stop"),
+    ];
+    const { interfaze } = mockInterfaze(() => sseResponse(unterminated));
+    const s = interfaze.chat.completions.stream({ messages: [{ role: "user", content: "x" }] });
+    let text = "";
+    for await (const piece of s.textDeltas()) text += piece;
+    expect(text).toBe("Hello ");
   });
 });
