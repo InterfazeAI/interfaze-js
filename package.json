@@ -1,6 +1,6 @@
 {
   "name": "interfaze",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Official Interfaze SDK — a typed wrapper over the OpenAI SDK for the Interfaze API (deterministic task model).",
   "license": "MIT",
   "author": "Interfaze",
