@@ -14,21 +14,23 @@ jobs:
   npm-publish:
     name: Publish to npm
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # OIDC handshake for npm Trusted Publishing — no token needed.
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          # Node 24 ships npm 11 (needed later if you switch to OIDC trusted publishing).
+          # Trusted Publishing needs npm >= 11.5.1. Node 24 ships npm 11.x;
+          # Node 22's bundled npm 10.x fails the OIDC handshake with a misleading 404.
           node-version: "24.x"
           registry-url: "https://registry.npmjs.org"
       - run: npm ci
       - run: npm run build
       - name: Publish to npm
-        # Repo is private, so provenance (--provenance) is omitted; add it once the
-        # repo is public and you move to OIDC trusted publishing.
+        # No --provenance: npm does not support provenance for private repos.
+        # Add it once interfaze-js is public.
         run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   jsr-publish:
     name: Publish to JSR
