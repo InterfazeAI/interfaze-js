@@ -1,11 +1,11 @@
 {
   "name": "interfaze",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Official Interfaze SDK — a typed wrapper over the OpenAI SDK for the Interfaze API (deterministic task model).",
   "license": "MIT",
   "author": "Interfaze",
   "homepage": "https://interfaze.ai",
-  "repository": { "type": "git", "url": "git+https://github.com/interfaze/interfaze-js.git" },
+  "repository": { "type": "git", "url": "git+https://github.com/InterfazeAI/interfaze-js.git" },
   "keywords": ["interfaze", "openai", "ai", "ocr", "speech-to-text", "web-search", "sdk"],
   "type": "module",
   "main": "./dist/index.cjs",

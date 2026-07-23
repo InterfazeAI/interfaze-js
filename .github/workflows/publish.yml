@@ -1,0 +1,48 @@
+name: Publish
+
+# Manually create a GitHub Release -> publishes `interfaze` to npm
+# and `@interfaze/interfaze` to JSR.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  npm-publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # OIDC handshake for npm Trusted Publishing — no token needed.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Trusted Publishing needs npm >= 11.5.1. Node 24 ships npm 11.x;
+          # Node 22's bundled npm 10.x fails the OIDC handshake with a misleading 404.
+          node-version: "24.x"
+          registry-url: "https://registry.npmjs.org"
+      - run: npm ci
+      - run: npm run build
+      - name: Publish to npm
+        # No --provenance: npm does not support provenance for private repos.
+        # Add it once interfaze-js is public.
+        run: npm publish --access public
+
+  jsr-publish:
+    name: Publish to JSR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # OIDC auth for JSR — no token needed.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+      - run: npm ci
+      - name: Publish to JSR
+        run: npx jsr publish --allow-slow-types
