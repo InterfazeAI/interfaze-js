@@ -1,4 +1,4 @@
-# interfaze
+# interfaze-js
 
 The official [Interfaze](https://interfaze.ai) SDK for TypeScript/JavaScript
 
