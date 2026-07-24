@@ -7,11 +7,7 @@ export function emptyTaskSchema(name = "empty_schema"): ResponseFormatJSONSchema
   return { type: "json_schema", json_schema: { name, schema: {} } };
 }
 
-/**
- * Build a structured-output `response_format` from a JSON Schema, sidestepping the OpenAI
- * zod-helper's client-side throws. Non-object roots are wrapped in a `{ result }` object.
- * With zod v4: `responseFormat(z.toJSONSchema(schema))`.
- */
+/** Build a structured-output `response_format` from a JSON Schema. */
 export function responseFormat(schema: JSONSchema, name = "response"): ResponseFormatJSONSchema {
   return { type: "json_schema", json_schema: { name, schema: ensureObjectRoot(schema) } };
 }

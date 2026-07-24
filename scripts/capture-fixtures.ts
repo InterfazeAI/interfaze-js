@@ -1,4 +1,4 @@
-// Capture real Interfaze wire responses into test/fixtures/*.json (used as mocked-test fixtures).
+// Capture Interfaze wire responses into test/fixtures/*.json (used as mocked-test fixtures).
 import OpenAI from "openai";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";

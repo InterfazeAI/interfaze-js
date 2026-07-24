@@ -89,7 +89,6 @@ function prepare(params: InterfazeChatCompletionCreateParams): {
   return { body, stripFence: (rf as { type?: string })?.type === "json_object" };
 }
 
-/** Mirrors OpenAI's `chat.completions`, returning Interfaze-extended completions. */
 export class InterfazeCompletions {
   #openai: OpenAI;
   constructor(openai: OpenAI) {

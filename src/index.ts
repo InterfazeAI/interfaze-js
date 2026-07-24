@@ -28,7 +28,6 @@ export {
   LIMITS,
 } from "./constants.js";
 
-// OpenAI re-exports (so users don't need a direct `openai` import).
 export { toFile } from "openai";
 export {
   OpenAIError,

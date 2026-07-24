@@ -21,13 +21,7 @@ function envKey(): string | undefined {
   return typeof process !== "undefined" && process.env ? process.env["INTERFAZE_API_KEY"] : undefined;
 }
 
-/**
- * The Interfaze client — a curated wrapper over the OpenAI SDK. Exposes the endpoints Interfaze
- * implements (`chat.completions`, `models`) plus task helpers (`tasks.*`); unsupported OpenAI
- * resources are intentionally absent.
- */
 export class Interfaze {
-  /** The underlying OpenAI client (escape hatch). */
   readonly openai: OpenAI;
   readonly chat: InterfazeChat;
   readonly models: OpenAI["models"];

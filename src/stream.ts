@@ -13,11 +13,7 @@ interface ToolCallAcc {
   arguments: string;
 }
 
-/**
- * Streaming helper that folds the raw `create({stream:true})` iterable itself — the OpenAI
- * `ChatCompletionStream` accumulator throws `missing role for choice 0` on Interfaze's role-less
- * deltas. Extracts the conditional `<think>` / `<precontext>` side-channels (either may be absent).
- */
+/** Streaming helper that folds the raw `create({stream:true})` iterable itself. */
 export class InterfazeChatCompletionStream implements AsyncIterable<ChatCompletionChunk> {
   #openai: OpenAI;
   #body: Record<string, unknown>;

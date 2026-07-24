@@ -1,4 +1,4 @@
-/** SDK-level (client-side) error. HTTP errors surface as the OpenAI error classes re-exported from the package root. */
+/** SDK-level (client-side) error.*/
 export class InterfazeError extends Error {
   constructor(message: string, options?: { cause?: unknown }) {
     super(message);
