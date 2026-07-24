@@ -1,9 +1,9 @@
 {
-  "name": "interfaze",
+  "name": "interfaze-js",
   "version": "1.0.1",
   "description": "Interfaze Javascript/Typescript SDK",
   "license": "MIT",
-  "author": "Interfaze",
+  "author": "InterfazeAI",
   "homepage": "https://interfaze.ai",
   "repository": { "type": "git", "url": "git+https://github.com/InterfazeAI/interfaze-js.git" },
   "keywords": ["interfaze", "openai", "ai", "ocr", "speech-to-text", "web-search", "sdk"],
