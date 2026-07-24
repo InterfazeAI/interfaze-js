@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { InterfazeError } from "../src/index.js";
 import { guardTag } from "../src/guard.js";
 import { completion, jsonResponse, mockInterfaze, systemContent } from "./helpers.js";
 

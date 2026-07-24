@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { ChatCompletionMessageToolCall } from "openai/resources/chat/completions/completions";
 import { fixture, mockInterfaze, sseResponse } from "./helpers.js";
 
-function asFunctionCall(call: ChatCompletionMessageToolCall) {
+function _asFunctionCall(call: ChatCompletionMessageToolCall) {
   if (call.type !== "function") throw new Error("expected a function tool call");
   return call.function;
 }
@@ -20,11 +20,7 @@ const mkChunk = (delta: object, finish: string | null = null) => ({
 });
 
 // A plain stream with NO side-channels (neither <think> nor <precontext>) — the accumulator must not hang.
-const plainChunks = [
-  mkChunk({ content: "Hello " }),
-  mkChunk({ content: "world" }),
-  mkChunk({}, "stop"),
-];
+const plainChunks = [mkChunk({ content: "Hello " }), mkChunk({ content: "world" }), mkChunk({}, "stop")];
 
 const fencedJson = [
   mkChunk({ content: "```json\n" }),
@@ -75,7 +71,10 @@ describe("streaming accumulator", () => {
 
   it("parses <think> reasoning and removes it from visible text", async () => {
     const { interfaze } = mockInterfaze(() => sseResponse(streamThink));
-    const s = interfaze.chat.completions.stream({ reasoning_effort: "high", messages: [{ role: "user", content: "why" }] });
+    const s = interfaze.chat.completions.stream({
+      reasoning_effort: "high",
+      messages: [{ role: "user", content: "why" }],
+    });
     const final = await s.finalChatCompletion();
     expect(final.reasoning).toBeTruthy();
     expect(final.choices[0]!.message.content).not.toContain("<think>");
@@ -111,7 +110,10 @@ describe("streaming accumulator", () => {
 
   it("textDeltas() strips <think> and yields only the answer", async () => {
     const { interfaze } = mockInterfaze(() => sseResponse(streamThink));
-    const s = interfaze.chat.completions.stream({ reasoning_effort: "high", messages: [{ role: "user", content: "why" }] });
+    const s = interfaze.chat.completions.stream({
+      reasoning_effort: "high",
+      messages: [{ role: "user", content: "why" }],
+    });
     let text = "";
     for await (const piece of s.textDeltas()) text += piece;
     expect(text).not.toContain("<think>");

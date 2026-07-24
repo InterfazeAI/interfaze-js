@@ -61,8 +61,9 @@ function prepare(params: InterfazeChatCompletionCreateParams): {
   body: Record<string, unknown>;
   stripFence: boolean;
 } {
-  const { task, guard, model, messages, response_format, ...rest } =
-    params as InterfazeChatCompletionCreateParams & { response_format?: unknown };
+  const { task, guard, model, messages, response_format, ...rest } = params as InterfazeChatCompletionCreateParams & {
+    response_format?: unknown;
+  };
 
   let rf = response_format;
   if (task) {
@@ -80,7 +81,7 @@ function prepare(params: InterfazeChatCompletionCreateParams): {
     messages: injectTags(
       messages as ChatCompletionMessageParam[],
       task ? `<task>${task}</task>` : undefined,
-      guard && guard.length ? guardTag(guard) : undefined,
+      guard?.length ? guardTag(guard) : undefined,
     ),
   };
   if (rf !== undefined) body["response_format"] = rf;
@@ -112,9 +113,7 @@ export class InterfazeCompletions {
     if (params.stream) {
       return raw as unknown as APIPromise<Stream<ChatCompletionChunk>>;
     }
-    return (raw as unknown as APIPromise<ChatCompletion>)._thenUnwrap((c) =>
-      toInterfaze(c, { stripFence }),
-    );
+    return (raw as unknown as APIPromise<ChatCompletion>)._thenUnwrap((c) => toInterfaze(c, { stripFence }));
   }
 
   /** Streaming with an Interfaze-tolerant accumulator; also surfaces `<think>`/`<precontext>`. */

@@ -61,8 +61,7 @@ export function errorResponse(status: number, error: unknown): Response {
 
 /** Replay captured chunk objects as an OpenAI-style SSE stream. */
 export function sseResponse(chunks: unknown[]): Response {
-  const body =
-    chunks.map((c) => `data: ${JSON.stringify(c)}\n\n`).join("") + "data: [DONE]\n\n";
+  const body = `${chunks.map((c) => `data: ${JSON.stringify(c)}\n\n`).join("")}data: [DONE]\n\n`;
   return new Response(body, {
     status: 200,
     headers: { "content-type": "text/event-stream" },

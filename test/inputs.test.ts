@@ -74,9 +74,7 @@ describe("input builders", () => {
     expect(inputs.autoPart("https://x.com/a.wav").type).toBe("input_audio");
     expect(inputs.autoPart("https://x.com/a.pdf").type).toBe("file");
     expect(inputs.autoPart("https://x.com/a.mp4").type).toBe("file");
-    expect((inputs.autoPart("https://x.com/a.mp4") as { file: { format?: string } }).file.format).toBe(
-      "video/mp4",
-    );
+    expect((inputs.autoPart("https://x.com/a.mp4") as { file: { format?: string } }).file.format).toBe("video/mp4");
   });
 
   it("autoPart() forwards a data-URI audio format", () => {

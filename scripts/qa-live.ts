@@ -36,7 +36,10 @@ const preview = (v: unknown) => JSON.stringify(v).slice(0, 60);
 
 // ── core ────────────────────────────────────────────────────────────────────
 await check("text generation", async () => {
-  const r = await client.chat.completions.create({ messages: [{ role: "user", content: "Say hi in one short sentence." }], max_tokens: 60 });
+  const r = await client.chat.completions.create({
+    messages: [{ role: "user", content: "Say hi in one short sentence." }],
+    max_tokens: 60,
+  });
   assert((r.choices[0]?.message.content ?? "").length > 0, "empty");
   assert(typeof r.vcache === "boolean", "no vcache");
   return `vcache=${r.vcache}`;
@@ -45,7 +48,14 @@ await check("text generation", async () => {
 await check("structured output (responseFormat)", async () => {
   const r = await client.chat.completions.create({
     messages: [{ role: "user", content: "Give a greeting and the number 3." }],
-    response_format: responseFormat({ type: "object", properties: { greeting: { type: "string" }, count: { type: "number" } }, required: ["greeting", "count"] }, "greeting"),
+    response_format: responseFormat(
+      {
+        type: "object",
+        properties: { greeting: { type: "string" }, count: { type: "number" } },
+        required: ["greeting", "count"],
+      },
+      "greeting",
+    ),
   });
   const p = JSON.parse(r.choices[0]!.message.content!);
   assert(typeof p.greeting === "string" && typeof p.count === "number", "fields missing");
@@ -65,7 +75,16 @@ await check("json_object fence stripped", async () => {
 await check("tools -> tool_calls + content null", async () => {
   const r = await client.chat.completions.create({
     messages: [{ role: "user", content: "Weather in Paris? Use the tool." }],
-    tools: [{ type: "function", function: { name: "get_weather", description: "Get weather. Always call.", parameters: { type: "object", properties: { city: { type: "string" } }, required: ["city"] } } }],
+    tools: [
+      {
+        type: "function",
+        function: {
+          name: "get_weather",
+          description: "Get weather. Always call.",
+          parameters: { type: "object", properties: { city: { type: "string" } }, required: ["city"] },
+        },
+      },
+    ],
     tool_choice: "auto",
   });
   assert(r.choices[0]!.finish_reason === "tool_calls", `finish=${r.choices[0]!.finish_reason}`);
@@ -83,22 +102,35 @@ await check("streaming (stream helper, role-less tolerant)", async () => {
 });
 
 await check("reasoning (reasoning_effort high)", async () => {
-  const s = client.chat.completions.stream({ reasoning_effort: "high", messages: [{ role: "user", content: "Why is the sky blue? Briefly." }] });
-  for await (const _ of s) { /* drain */ }
+  const s = client.chat.completions.stream({
+    reasoning_effort: "high",
+    messages: [{ role: "user", content: "Why is the sky blue? Briefly." }],
+  });
+  for await (const _ of s) {
+    /* drain */
+  }
   const final = await s.finalChatCompletion();
   assert(final.reasoning && final.reasoning.length > 0, "no reasoning parsed");
   return `reasoning ${final.reasoning!.length} chars`;
 });
 
 await check("reasoning_effort widened value 'on'", async () => {
-  const r = await client.chat.completions.create({ reasoning_effort: "on", messages: [{ role: "user", content: "Hello" }] });
+  const r = await client.chat.completions.create({
+    reasoning_effort: "on",
+    messages: [{ role: "user", content: "Hello" }],
+  });
   assert((r.choices[0]?.message.content ?? "").length > 0, "empty");
   return "accepted";
 });
 
 await check("precontext (auto path, single + present)", async () => {
   const r = await client.chat.completions.create({
-    messages: [{ role: "user", content: [{ type: "text", text: "Extract total price from this receipt" }, inputs.file(ASSETS.receipt)] }],
+    messages: [
+      {
+        role: "user",
+        content: [{ type: "text", text: "Extract total price from this receipt" }, inputs.file(ASSETS.receipt)],
+      },
+    ],
   });
   assert(r.precontext && r.precontext.length > 0, "no precontext");
   return `names=[${r.precontext!.map((p) => p.name)}]`;
@@ -114,12 +146,36 @@ await check("guardrails -> unsafe", async () => {
 });
 
 // ── task helpers ──────────────────────────────────────────────────────────────
-await check("tasks.ocr", async () => { const r = await client.tasks.ocr(ASSETS.receipt); assert(r, "empty"); return preview(r); });
-await check("tasks.webSearch", async () => { const r = await client.tasks.webSearch("latest AI agent news"); assert(r, "empty"); return preview(r); });
-await check("tasks.transcribe", async () => { const r = await client.tasks.transcribe(ASSETS.audio); assert(r, "empty"); return preview(r); });
-await check("tasks.forecast", async () => { const r = await client.tasks.forecast(ASSETS.csv, { periods: 5 }); assert(r, "empty"); return preview(r); });
-await check("tasks.scrape", async () => { const r = await client.tasks.scrape("https://example.com"); assert(r, "empty"); return preview(r); });
-await check("tasks.translate", async () => { const r = await client.tasks.translate("Hello, how are you?", { to: "French" }); assert(r, "empty"); return preview(r); });
+await check("tasks.ocr", async () => {
+  const r = await client.tasks.ocr(ASSETS.receipt);
+  assert(r, "empty");
+  return preview(r);
+});
+await check("tasks.webSearch", async () => {
+  const r = await client.tasks.webSearch("latest AI agent news");
+  assert(r, "empty");
+  return preview(r);
+});
+await check("tasks.transcribe", async () => {
+  const r = await client.tasks.transcribe(ASSETS.audio);
+  assert(r, "empty");
+  return preview(r);
+});
+await check("tasks.forecast", async () => {
+  const r = await client.tasks.forecast(ASSETS.csv, { periods: 5 });
+  assert(r, "empty");
+  return preview(r);
+});
+await check("tasks.scrape", async () => {
+  const r = await client.tasks.scrape("https://example.com");
+  assert(r, "empty");
+  return preview(r);
+});
+await check("tasks.translate", async () => {
+  const r = await client.tasks.translate("Hello, how are you?", { to: "French" });
+  assert(r, "empty");
+  return preview(r);
+});
 // object/gui detection occasionally return empty content on the API; retry-on-empty so the gate
 // reflects the SDK, not a transient blip. A persistent empty after retries still fails.
 async function retryNonEmpty<T>(fn: () => Promise<T>, n = 3): Promise<T> {
@@ -130,13 +186,23 @@ async function retryNonEmpty<T>(fn: () => Promise<T>, n = 3): Promise<T> {
   }
   return last;
 }
-await check("tasks.objectDetection", async () => { const r = await retryNonEmpty(() => client.tasks.objectDetection(ASSETS.scene)); assert(r, "empty after retries"); return preview(r); });
-await check("tasks.guiDetection", async () => { const r = await retryNonEmpty(() => client.tasks.guiDetection(ASSETS.scene)); assert(r, "empty after retries"); return preview(r); });
+await check("tasks.objectDetection", async () => {
+  const r = await retryNonEmpty(() => client.tasks.objectDetection(ASSETS.scene));
+  assert(r, "empty after retries");
+  return preview(r);
+});
+await check("tasks.guiDetection", async () => {
+  const r = await retryNonEmpty(() => client.tasks.guiDetection(ASSETS.scene));
+  assert(r, "empty after retries");
+  return preview(r);
+});
 
 // ── input matrix (via the SDK's create + inputs builders) ─────────────────────
 async function inputCheck(label: string, part: ReturnType<typeof inputs.file>, prompt: string) {
   await check(`input: ${label}`, async () => {
-    const r = await client.chat.completions.create({ messages: [{ role: "user", content: [{ type: "text", text: prompt }, part] }] });
+    const r = await client.chat.completions.create({
+      messages: [{ role: "user", content: [{ type: "text", text: prompt }, part] }],
+    });
     assert((r.choices[0]?.message.content ?? "").length > 0, "empty");
     return "ok";
   });
@@ -149,21 +215,43 @@ await inputCheck("video (url)", inputs.video(ASSETS.video), "Describe this video
 // input channels: base64 + inline URL (file-part URL is covered above)
 await check("input: base64 image (data URI)", async () => {
   const bytes = new Uint8Array(await (await fetch(ASSETS.receipt)).arrayBuffer());
-  const r = await client.chat.completions.create({ messages: [{ role: "user", content: [{ type: "text", text: "What is in this image? One sentence." }, inputs.image(await inputs.dataUrl(bytes, "image/jpeg"))] }] });
+  const r = await client.chat.completions.create({
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "What is in this image? One sentence." },
+          inputs.image(await inputs.dataUrl(bytes, "image/jpeg")),
+        ],
+      },
+    ],
+  });
   assert((r.choices[0]?.message.content ?? "").length > 0, "empty");
   return "ok";
 });
 await check("input: base64 file (csv data URI)", async () => {
   const bytes = new Uint8Array(await (await fetch(ASSETS.csv)).arrayBuffer());
-  const r = await client.chat.completions.create({ messages: [{ role: "user", content: [{ type: "text", text: "Name one column header in this CSV." }, inputs.file(await inputs.dataUrl(bytes, "text/csv"), { filename: "data.csv" })] }] });
+  const r = await client.chat.completions.create({
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "Name one column header in this CSV." },
+          inputs.file(await inputs.dataUrl(bytes, "text/csv"), { filename: "data.csv" }),
+        ],
+      },
+    ],
+  });
   assert((r.choices[0]?.message.content ?? "").length > 0, "empty");
   return "ok";
 });
 await check("input: inline URL (in text)", async () => {
-  const r = await client.chat.completions.create({ messages: [{ role: "user", content: `Extract the total price from this receipt: ${ASSETS.receipt}` }] });
+  const r = await client.chat.completions.create({
+    messages: [{ role: "user", content: `Extract the total price from this receipt: ${ASSETS.receipt}` }],
+  });
   assert((r.choices[0]?.message.content ?? "").length > 0, "empty");
   return "ok";
 });
 
-console.log(`\nLIVE QA: ${failures === 0 ? "ALL PASSED ✅ (go)" : failures + " FAILED ❌ (no-go)"}`);
+console.log(`\nLIVE QA: ${failures === 0 ? "ALL PASSED ✅ (go)" : `${failures} FAILED ❌ (no-go)`}`);
 if (failures) process.exit(1);

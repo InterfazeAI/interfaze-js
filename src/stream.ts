@@ -216,7 +216,10 @@ export function stripSideChannels(content: string): {
 export function stripJsonFence(content: string): string {
   const t = content.trim();
   if (!t.startsWith("```")) return content;
-  return t.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+  return t
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
 }
 
 const SIDE_OPEN = ["<think>", "<precontext>"] as const;

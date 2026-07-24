@@ -87,7 +87,10 @@ describe("request serialization", () => {
       interfaze.chat.completions.create({
         task: "ocr",
         messages: [{ role: "user", content: "x" }],
-        response_format: { type: "json_schema", json_schema: { name: "s", schema: { type: "object", properties: { a: { type: "string" } } } } },
+        response_format: {
+          type: "json_schema",
+          json_schema: { name: "s", schema: { type: "object", properties: { a: { type: "string" } } } },
+        },
       }),
     ).toThrow(/non-empty `response_format` cannot be combined with `task`/);
   });
@@ -257,7 +260,9 @@ describe("response mapping", () => {
   it("leaves tool-call responses with content: null untouched", async () => {
     const toolCall = completion(null, {
       finishReason: "tool_calls",
-      toolCalls: [{ id: "call_1", type: "function", function: { name: "get_weather", arguments: '{"city": "Paris"}' } }],
+      toolCalls: [
+        { id: "call_1", type: "function", function: { name: "get_weather", arguments: '{"city": "Paris"}' } },
+      ],
     });
     const { interfaze } = mockInterfaze(() => jsonResponse(toolCall));
     const r = await interfaze.chat.completions.create({

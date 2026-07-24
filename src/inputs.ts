@@ -5,14 +5,35 @@ import { InterfazeError } from "./errors.js";
 export type BytesLike = Uint8Array | ArrayBuffer | Blob;
 
 const EXT_MIME: Record<string, string> = {
-  png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp",
-  gif: "image/gif", bmp: "image/bmp", heic: "image/heic", heif: "image/heif",
-  pdf: "application/pdf", csv: "text/csv", tsv: "text/tab-separated-values",
-  xml: "application/xml", json: "application/json", txt: "text/plain",
-  md: "text/markdown", markdown: "text/markdown", yaml: "application/yaml", yml: "application/yaml",
-  wav: "audio/wav", mp3: "audio/mpeg", m4a: "audio/mp4", ogg: "audio/ogg", flac: "audio/flac",
-  mp4: "video/mp4", mov: "video/quicktime", webm: "video/webm", avi: "video/x-msvideo",
-  mkv: "video/x-matroska", "3gp": "video/3gpp",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  gif: "image/gif",
+  bmp: "image/bmp",
+  heic: "image/heic",
+  heif: "image/heif",
+  pdf: "application/pdf",
+  csv: "text/csv",
+  tsv: "text/tab-separated-values",
+  xml: "application/xml",
+  json: "application/json",
+  txt: "text/plain",
+  md: "text/markdown",
+  markdown: "text/markdown",
+  yaml: "application/yaml",
+  yml: "application/yaml",
+  wav: "audio/wav",
+  mp3: "audio/mpeg",
+  m4a: "audio/mp4",
+  ogg: "audio/ogg",
+  flac: "audio/flac",
+  mp4: "video/mp4",
+  mov: "video/quicktime",
+  webm: "video/webm",
+  avi: "video/x-msvideo",
+  mkv: "video/x-matroska",
+  "3gp": "video/3gpp",
 };
 
 function mimeFromDataUrl(s: string): string | undefined {
@@ -68,10 +89,7 @@ export function image(src: string): ChatCompletionContentPart {
 }
 
 /** File part (pdf/csv/xml/json/text/audio/video/…). `src` = https URL or `data:` URI. */
-export function file(
-  src: string,
-  opts: { filename?: string; format?: string } = {},
-): ChatCompletionContentPart {
+export function file(src: string, opts: { filename?: string; format?: string } = {}): ChatCompletionContentPart {
   const mime = opts.format ?? mimeFromDataUrl(src) ?? EXT_MIME[extOf(opts.filename ?? src) ?? ""];
   assertAllowed(mime);
   const f: { file_data: string; filename?: string; format?: string } = { file_data: src };
