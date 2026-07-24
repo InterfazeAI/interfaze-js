@@ -82,14 +82,14 @@ describe("tasks.transcribe", () => {
 describe("tasks.webSearch", () => {
   it("sends the query as plain string content under <task>web_search</task>", async () => {
     const { interfaze, calls } = mockInterfaze(() =>
-      taskResult("web_search", { results: [{ title: "AI agents", url: "https://example.com" }] }),
+      taskResult("web_search", { results: [{ title: "AI agents", url: ASSETS.scrape }] }),
     );
     const result = await interfaze.tasks.webSearch("latest AI agent news");
     const body = calls[0]!.body!;
     expect(systemContent(body)).toContain("<task>web_search</task>");
     const messages = body["messages"] as Array<{ role: string; content: unknown }>;
     expect(messages[1]!.content).toBe("latest AI agent news");
-    expect(result).toEqual({ results: [{ title: "AI agents", url: "https://example.com" }] });
+    expect(result).toEqual({ results: [{ title: "AI agents", url: ASSETS.scrape }] });
   });
 });
 

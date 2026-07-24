@@ -1,11 +1,8 @@
-/**
- * Real Interfaze/public asset URLs used across tests instead of fake placeholders.
- *
- * None of these are fetched in tests — every request goes through a mock `fetch` — but using
- * real URLs keeps request bodies representative of actual SDK usage.
- */
+// None of these are fetched in tests — every request goes through a mock `fetch`
 export const ASSETS = {
   image: "https://jigsawstack.com/preview/vocr-example.jpg",
+  gif: "https://upload.wikimedia.org/wikipedia/commons/2/2c/Rotating_earth_%28large%29.gif",
+  svg: "https://upload.wikimedia.org/wikipedia/commons/8/84/Example.svg",
   audio: "https://jigsawstack.com/preview/stt-example.wav",
   csv: "https://r2public.jigsawstack.com/interfaze/examples/prediction-example.csv",
   scene: "https://raw.githubusercontent.com/ultralytics/yolov5/master/data/images/bus.jpg",
