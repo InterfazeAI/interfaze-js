@@ -210,6 +210,26 @@ import { BadRequestError, InterfazeError, RateLimitError } from "interfaze";
 
 `InterfazeError` is client-side (missing key, invalid guard code, stream misuse). Everything else extends the OpenAI `APIError` with `status` and `code` - `BadRequestError` (400), `AuthenticationError` (401), `RateLimitError` (429), and so on.
 
+## Capabilities
+
+| Use case                   | Entry point                                   |
+| -------------------------- | --------------------------------------------- |
+| [Chat](#chat)              | `chat.completions.create`                     |
+| [Streaming](#streaming)    | `chat.completions.stream`                     |
+| [Structured output](#structured-output) | `responseFormat()`              |
+| [Reasoning](#reasoning)    | `reasoning_effort`                            |
+| [Tools](#tools-and-function-calling) | `tools`                             |
+| [Multimodal inputs](#inputs) | `inputs.*`                                  |
+| [OCR](#tasks)              | `tasks.ocr`                                   |
+| [Object and GUI detection](#tasks) | `tasks.objectDetection`, `tasks.guiDetection` |
+| [Web search and scraping](#tasks) | `tasks.webSearch`, `tasks.scrape`      |
+| [Speech to text](#tasks)   | `tasks.transcribe`                            |
+| [Translation](#tasks)      | `tasks.translate`                             |
+| [Forecasting](#tasks)      | `tasks.forecast`                              |
+| Sandboxing            | prompt-driven                                 |
+| [Guardrails](#guardrails)  | `guard`                                       |
+| [Interfaze extras](#interfaze-extras) | `precontext`, `reasoning`, `vcache` |
+
 ## Examples
 
 Runnable snippets in [`examples/`](./examples).
