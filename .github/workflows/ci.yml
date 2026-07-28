@@ -37,6 +37,7 @@ jobs:
           npm install "$RUNNER_TEMP"/*.tgz >/dev/null
           node -e "if (!require('$PKG').Interfaze) { process.exit(1) }"
           node --input-type=module -e "import { Interfaze } from '$PKG'; if (!Interfaze) process.exit(1)"
+          test ! -d node_modules/openai || { echo "FAIL: openai should not be installed as a dependency"; exit 1; }
 
   test:
     name: test (node ${{ matrix.node }})

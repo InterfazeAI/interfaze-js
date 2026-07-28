@@ -125,6 +125,13 @@ URLs and base64 both work; `image/gif` and `image/avif` are rejected client-side
 - Guardrails: `create({ guard: ["S1", "S12_IMAGE"], … })`.
 - Control options: `new Interfaze({ showAdditionalInfo, bypassMoe, bypassCache, adminKey })`.
 
+## Notes
+
+This package bundles the OpenAI SDK internally. Error classes re-exported from this package
+(`APIError`, `APIUserAbortError`, etc.) are distinct from those in a standalone `openai` install,
+so `instanceof` checks against `openai`'s copies will return `false`. Use the error classes
+exported by `interfaze` for reliable `instanceof` checks.
+
 ## License
 
 MIT

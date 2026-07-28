@@ -3,13 +3,17 @@ import { defineConfig } from "tsup";
 export default defineConfig({
   entry: ["src/index.ts"],
   format: ["esm", "cjs"],
-  dts: true,
+  dts: {
+    resolve: [/^openai(\/|$)/],
+  },
   clean: true,
   sourcemap: true,
   target: "es2022",
-  treeshake: true,
   splitting: false,
-  // `openai` (and optional `zod`) stay external — they're deps, not bundled.
-  external: ["openai", "zod"],
+  noExternal: ["openai"],
+  external: ["zod"],
+  esbuildOptions(options) {
+    options.sourcesContent = false;
+  },
 });
 
