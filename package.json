@@ -45,17 +45,17 @@
     "node": ">=18"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && tsx scripts/bundle-dts.ts",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "format": "biome format --write .",
     "format:check": "biome format --check .",
-    "check:pkg": "publint --strict && attw --pack",
+    "check:pkg": "publint --strict --pack npm && attw --pack",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "qa:live": "tsx scripts/qa-live.ts",
-    "prepare": "tsup",
+    "prepare": "tsup && tsx scripts/bundle-dts.ts",
     "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
@@ -71,8 +71,8 @@
     "@biomejs/biome": "2.5.5",
     "@types/node": "~22.20.1",
     "@vitest/coverage-v8": "^2.1.9",
-    "publint": "0.3.22",
     "openai": "~6.47.0",
+    "publint": "0.3.22",
     "tsup": "^8.5.1",
     "tsx": "^4.23.1",
     "typescript": "~5.9.3",
