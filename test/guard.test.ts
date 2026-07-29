@@ -44,7 +44,7 @@ describe("create() + guard integration", () => {
       interfaze.chat.completions.create({
         guard: ["NOT_A_CODE" as never],
         messages: [{ role: "user", content: "x" }],
-      }),
+      })
     ).toThrow(/Invalid guard code/);
     expect(calls).toHaveLength(0);
   });

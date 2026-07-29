@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   static:
-    name: static (lint · types · build · package)
+    name: static (format · types · build · package)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -20,8 +20,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Lint + format check (biome)
-        run: npm run lint
+      - name: Format check (prettier)
+        run: npm run format:check
       - name: Type check
         run: npm run typecheck
       - name: Build

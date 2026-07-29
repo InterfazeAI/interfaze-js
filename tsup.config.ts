@@ -12,4 +12,3 @@ export default defineConfig({
   // `openai` (and optional `zod`) stay external — they're deps, not bundled.
   external: ["openai", "zod"],
 });
-

@@ -13,9 +13,7 @@ interface Part {
 
 describe("tasks.ocr", () => {
   it("builds the <task>ocr</task> request and returns the raw result", async () => {
-    const { interfaze, calls } = mockInterfaze(() =>
-      taskResult("ocr", { extracted_text: "See back of receipt", width: 800 }),
-    );
+    const { interfaze, calls } = mockInterfaze(() => taskResult("ocr", { extracted_text: "See back of receipt", width: 800 }));
     const result = await interfaze.tasks.ocr(ASSETS.image);
     const body = calls[0]!.body!;
     expect(systemContent(body)).toContain("<task>ocr</task>");
@@ -30,9 +28,7 @@ describe("tasks.ocr", () => {
 
 describe("tasks.objectDetection", () => {
   it("builds the <task>object_detection</task> request and returns the raw result", async () => {
-    const { interfaze, calls } = mockInterfaze(() =>
-      taskResult("object_detection", { objects: [{ label: "bus", box: [0, 0, 10, 10] }] }),
-    );
+    const { interfaze, calls } = mockInterfaze(() => taskResult("object_detection", { objects: [{ label: "bus", box: [0, 0, 10, 10] }] }));
     const result = await interfaze.tasks.objectDetection(ASSETS.scene);
     const body = calls[0]!.body!;
     expect(systemContent(body)).toContain("<task>object_detection</task>");
@@ -47,9 +43,7 @@ describe("tasks.objectDetection", () => {
 
 describe("tasks.guiDetection", () => {
   it("falls through to a generic file part (no extension to sniff) and returns the raw result", async () => {
-    const { interfaze, calls } = mockInterfaze(() =>
-      taskResult("gui_detection", { elements: [{ label: "button", box: [1, 2, 3, 4] }] }),
-    );
+    const { interfaze, calls } = mockInterfaze(() => taskResult("gui_detection", { elements: [{ label: "button", box: [1, 2, 3, 4] }] }));
     const result = await interfaze.tasks.guiDetection(ASSETS.gui);
     const body = calls[0]!.body!;
     expect(systemContent(body)).toContain("<task>gui_detection</task>");
@@ -81,9 +75,7 @@ describe("tasks.transcribe", () => {
 
 describe("tasks.webSearch", () => {
   it("sends the query as plain string content under <task>web_search</task>", async () => {
-    const { interfaze, calls } = mockInterfaze(() =>
-      taskResult("web_search", { results: [{ title: "AI agents", url: ASSETS.scrape }] }),
-    );
+    const { interfaze, calls } = mockInterfaze(() => taskResult("web_search", { results: [{ title: "AI agents", url: ASSETS.scrape }] }));
     const result = await interfaze.tasks.webSearch("latest AI agent news");
     const body = calls[0]!.body!;
     expect(systemContent(body)).toContain("<task>web_search</task>");

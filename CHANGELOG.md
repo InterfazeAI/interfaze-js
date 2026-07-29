@@ -9,6 +9,7 @@ All notable changes to `interfaze` are documented here. The format follows
 Initial release — a typed wrapper over the OpenAI SDK for the Interfaze API.
 
 ### Added
+
 - `Interfaze` client (composition over `openai@6`) exposing `chat.completions`, `models`, and `tasks.*`.
 - `chat.completions.create()` returning `InterfazeChatCompletion` with typed `precontext`, `reasoning`, and `vcache`.
 - `chat.completions.stream()` — an Interfaze-tolerant streaming helper (handles role-less deltas; surfaces `<think>`/`<precontext>`).

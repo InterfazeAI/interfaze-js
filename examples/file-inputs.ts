@@ -7,10 +7,7 @@ const a = await interfaze.chat.completions.create({
   messages: [
     {
       role: "user",
-      content: [
-        { type: "text", text: "Summarize this PDF." },
-        inputs.file("https://arxiv.org/pdf/1706.03762", { filename: "paper.pdf" }),
-      ],
+      content: [{ type: "text", text: "Summarize this PDF." }, inputs.file("https://arxiv.org/pdf/1706.03762", { filename: "paper.pdf" })],
     },
   ],
 });

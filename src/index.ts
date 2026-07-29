@@ -19,14 +19,7 @@ export type {
   InterfazeChatCompletionCreateParamsStreaming,
 } from "./types.js";
 
-export {
-  TASK_NAMES,
-  GUARD_CODES,
-  GUARD_LABELS,
-  INTERFAZE_MODEL,
-  INTERFAZE_BASE_URL,
-  LIMITS,
-} from "./constants.js";
+export { TASK_NAMES, GUARD_CODES, GUARD_LABELS, INTERFAZE_MODEL, INTERFAZE_BASE_URL, LIMITS } from "./constants.js";
 
 export { toFile } from "openai";
 export {

@@ -30,7 +30,7 @@ save(
     model: "interfaze-beta",
     messages: [{ role: "user", content: "Say hi in one short sentence." }],
     max_tokens: 60,
-  }),
+  })
 );
 
 save(
@@ -39,7 +39,7 @@ save(
     model: "interfaze-beta",
     messages: [{ role: "user", content: "Return a JSON object with keys city and temp_c for Tokyo." }],
     response_format: { type: "json_object" },
-  }),
+  })
 );
 
 save(
@@ -51,17 +51,15 @@ save(
       { role: "user", content: [{ type: "text", text: "Extract total price" }, receipt as never] },
     ],
     response_format: { type: "json_schema", json_schema: { name: "empty_schema", schema: {} } } as never,
-  }),
+  })
 );
 
 save(
   "precontext.json",
   await client.chat.completions.create({
     model: "interfaze-beta",
-    messages: [
-      { role: "user", content: [{ type: "text", text: "Extract total price from this receipt" }, receipt as never] },
-    ],
-  }),
+    messages: [{ role: "user", content: [{ type: "text", text: "Extract total price from this receipt" }, receipt as never] }],
+  })
 );
 
 {

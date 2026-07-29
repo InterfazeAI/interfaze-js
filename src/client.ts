@@ -32,9 +32,7 @@ export class Interfaze {
 
     const resolvedKey = apiKey ?? envKey();
     if (!resolvedKey) {
-      throw new InterfazeError(
-        "Missing API key. Pass `new Interfaze({ apiKey })` or set the INTERFAZE_API_KEY environment variable.",
-      );
+      throw new InterfazeError("Missing API key. Pass `new Interfaze({ apiKey })` or set the INTERFAZE_API_KEY environment variable.");
     }
 
     const headers: Record<string, string> = { ...(defaultHeaders as Record<string, string> | undefined) };

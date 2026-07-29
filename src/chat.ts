@@ -1,11 +1,7 @@
 import type OpenAI from "openai";
 import type { APIPromise } from "openai";
 import type { Stream } from "openai/streaming";
-import type {
-  ChatCompletion,
-  ChatCompletionChunk,
-  ChatCompletionMessageParam,
-} from "openai/resources/chat/completions/completions";
+import type { ChatCompletion, ChatCompletionChunk, ChatCompletionMessageParam } from "openai/resources/chat/completions/completions";
 
 import { INTERFAZE_MODEL } from "./constants.js";
 import { InterfazeError } from "./errors.js";
@@ -31,11 +27,7 @@ export function toInterfaze(raw: ChatCompletion, opts: { stripFence: boolean }):
   return r;
 }
 
-function injectTags(
-  messages: readonly ChatCompletionMessageParam[],
-  task?: string,
-  guard?: string,
-): ChatCompletionMessageParam[] {
+function injectTags(messages: readonly ChatCompletionMessageParam[], task?: string, guard?: string): ChatCompletionMessageParam[] {
   const tags = [task, guard].filter(Boolean).join(" ");
   if (!tags) return messages.slice();
   const out = messages.slice();
@@ -68,9 +60,7 @@ function prepare(params: InterfazeChatCompletionCreateParams): {
   let rf = response_format;
   if (task) {
     if (rf && isNonEmptySchema(rf)) {
-      throw new InterfazeError(
-        "A non-empty `response_format` cannot be combined with `task` (Interfaze runs tasks with raw output).",
-      );
+      throw new InterfazeError("A non-empty `response_format` cannot be combined with `task` (Interfaze runs tasks with raw output).");
     }
     rf = emptyTaskSchema();
   }
@@ -81,7 +71,7 @@ function prepare(params: InterfazeChatCompletionCreateParams): {
     messages: injectTags(
       messages as ChatCompletionMessageParam[],
       task ? `<task>${task}</task>` : undefined,
-      guard?.length ? guardTag(guard) : undefined,
+      guard?.length ? guardTag(guard) : undefined
     ),
   };
   if (rf !== undefined) body["response_format"] = rf;
@@ -95,17 +85,11 @@ export class InterfazeCompletions {
     this.#openai = openai;
   }
 
-  create(
-    params: InterfazeChatCompletionCreateParamsNonStreaming,
-    options?: RequestOptions,
-  ): APIPromise<InterfazeChatCompletion>;
-  create(
-    params: InterfazeChatCompletionCreateParamsStreaming,
-    options?: RequestOptions,
-  ): APIPromise<Stream<ChatCompletionChunk>>;
+  create(params: InterfazeChatCompletionCreateParamsNonStreaming, options?: RequestOptions): APIPromise<InterfazeChatCompletion>;
+  create(params: InterfazeChatCompletionCreateParamsStreaming, options?: RequestOptions): APIPromise<Stream<ChatCompletionChunk>>;
   create(
     params: InterfazeChatCompletionCreateParams,
-    options?: RequestOptions,
+    options?: RequestOptions
   ): APIPromise<InterfazeChatCompletion> | APIPromise<Stream<ChatCompletionChunk>> {
     const { body, stripFence } = prepare(params);
     const raw = this.#openai.chat.completions.create(body as never, options);
@@ -116,10 +100,7 @@ export class InterfazeCompletions {
   }
 
   /** Streaming with an Interfaze-tolerant accumulator; also surfaces `<think>`/`<precontext>`. */
-  stream(
-    params: Omit<InterfazeChatCompletionCreateParamsStreaming, "stream">,
-    options?: RequestOptions,
-  ): InterfazeChatCompletionStream {
+  stream(params: Omit<InterfazeChatCompletionCreateParamsStreaming, "stream">, options?: RequestOptions): InterfazeChatCompletionStream {
     const { body, stripFence } = prepare({ ...params, stream: true } as InterfazeChatCompletionCreateParamsStreaming);
     return new InterfazeChatCompletionStream(this.#openai, body, options, stripFence);
   }

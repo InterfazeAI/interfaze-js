@@ -3,16 +3,7 @@ export const INTERFAZE_MODEL = "interfaze-beta";
 export const DEFAULT_TIMEOUT_MS = 900_000;
 
 /** Task names accepted in a `<task>…</task>` tag. */
-export const TASK_NAMES = [
-  "ocr",
-  "object_detection",
-  "gui_detection",
-  "web_search",
-  "scraper",
-  "translate",
-  "speech_to_text",
-  "forecast",
-] as const;
+export const TASK_NAMES = ["ocr", "object_detection", "gui_detection", "web_search", "scraper", "translate", "speech_to_text", "forecast"] as const;
 
 /** Guardrail categories (`ALL` enables everything). */
 export const GUARD_CODES = [

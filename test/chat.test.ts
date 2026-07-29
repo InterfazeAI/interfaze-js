@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { toInterfaze } from "../src/chat.js";
 import { HEADERS } from "../src/constants.js";
-import type {
-  ChatCompletion,
-  ChatCompletionChunk,
-  ChatCompletionMessageToolCall,
-} from "openai/resources/chat/completions/completions";
+import type { ChatCompletion, ChatCompletionChunk, ChatCompletionMessageToolCall } from "openai/resources/chat/completions/completions";
 import { completion, fixture, jsonResponse, mockInterfaze, sseResponse, systemContent } from "./helpers.js";
 
 function functionName(call: ChatCompletionMessageToolCall): string {
@@ -91,7 +87,7 @@ describe("request serialization", () => {
           type: "json_schema",
           json_schema: { name: "s", schema: { type: "object", properties: { a: { type: "string" } } } },
         },
-      }),
+      })
     ).toThrow(/non-empty `response_format` cannot be combined with `task`/);
   });
 
@@ -171,7 +167,7 @@ describe("request serialization", () => {
     const { interfaze, calls } = mockInterfaze(() => jsonResponse(basic), { adminKey: "client-default" });
     await interfaze.chat.completions.create(
       { messages: [{ role: "user", content: "x" }] },
-      { headers: { [HEADERS.adminKey]: "per-request-override" } },
+      { headers: { [HEADERS.adminKey]: "per-request-override" } }
     );
     expect(calls[0]!.headers.get(HEADERS.adminKey)).toBe("per-request-override");
   });
@@ -224,9 +220,7 @@ describe("response mapping", () => {
 
   it("preserves the raw HTTP response via .withResponse() (guards the _thenUnwrap mapping)", async () => {
     const { interfaze } = mockInterfaze(() => jsonResponse(basic));
-    const { data, response } = await interfaze.chat.completions
-      .create({ messages: [{ role: "user", content: "hi" }] })
-      .withResponse();
+    const { data, response } = await interfaze.chat.completions.create({ messages: [{ role: "user", content: "hi" }] }).withResponse();
     expect(response.status).toBe(200);
     expect(typeof data.vcache).toBe("boolean");
     expect(data.choices[0]!.message.content).toBeDefined();
@@ -260,9 +254,7 @@ describe("response mapping", () => {
   it("leaves tool-call responses with content: null untouched", async () => {
     const toolCall = completion(null, {
       finishReason: "tool_calls",
-      toolCalls: [
-        { id: "call_1", type: "function", function: { name: "get_weather", arguments: '{"city": "Paris"}' } },
-      ],
+      toolCalls: [{ id: "call_1", type: "function", function: { name: "get_weather", arguments: '{"city": "Paris"}' } }],
     });
     const { interfaze } = mockInterfaze(() => jsonResponse(toolCall));
     const r = await interfaze.chat.completions.create({
