@@ -2,11 +2,6 @@
 
 The official [Interfaze](https://interfaze.ai) SDK for TypeScript/JavaScript
 
-- **Familiar chat surface** - `chat.completions`, streaming, tools, and structured output.
-- **Typed `precontext`** - the raw metadata Interfaze returns with a completion (bounding boxes, confidence scores, task results), fully typed.
-- **[run_task](https://interfaze.ai/docs/run-tasks)** - run a single built-in task (OCR, web search, scraping, speech-to-text, translation, object/GUI detection, forecasting) without the full model.
-- **Multimodal inputs** - images, PDFs, audio, video, and CSV, by URL or base64.
-- **Universal** - Node 18+, browsers, and edge/workers; ESM + CommonJS; fully typed.
 
 [Docs](https://interfaze.ai/docs) · [limits](https://interfaze.ai/docs/limits) · [pricing](https://interfaze.ai/pricing) · [dashboard](https://interfaze.ai) · [Python SDK](https://github.com/InterfazeAI/interfaze-python)
 
@@ -103,27 +98,29 @@ const final = await stream.finalChatCompletion(); // .precontext (the sources), 
 `responseFormat()` takes a JSON Schema - or a zod schema via `z.toJSONSchema()` - and normalizes it for Interfaze:
 
 ```ts
-import { responseFormat } from "interfaze";
+import { responseFormat, inputs } from "interfaze";
 import { z } from "zod";
 
-const Invoice = z.object({
-  vendor: z.string(),
-  currency: z.string(),
+const Receipt = z.object({
+  merchant: z.string(),
   total: z.number(),
-  line_items: z.array(z.object({ description: z.string(), amount: z.number() })),
+  items: z.array(z.object({ name: z.string(), price: z.number() })),
 });
 
 const res = await interfaze.chat.completions.create({
   messages: [
     {
       role: "user",
-      content: "Extract the invoice:\nAcme Corp\n3x Widget @ $30\n1x Shipping @ $10\nTotal: $100 USD",
+      content: [
+        { type: "text", text: "Extract this receipt." },
+        inputs.image("https://jigsawstack.com/preview/vocr-example.jpg"),
+      ],
     },
   ],
-  response_format: responseFormat(z.toJSONSchema(Invoice), "invoice"),
+  response_format: responseFormat(z.toJSONSchema(Receipt), "receipt"),
 });
 
-const invoice = JSON.parse(res.choices[0]?.message.content ?? "{}");
+const receipt = JSON.parse(res.choices[0]?.message.content ?? "{}"); // { merchant, total, items: [...] }
 ```
 
 Prefer a plain schema?
@@ -238,7 +235,9 @@ await interfaze.chat.completions.create({
 
 ## Tasks
 
-Run a single built-in task ([run_task](https://interfaze.ai/docs/run-tasks)) instead of a full completion. It runs one part of the model rather than the whole thing, so it's faster and cheaper - the downside is you get one task at a time, with a fixed output structure you can't customize:
+A task ([run_task](https://interfaze.ai/docs/run-tasks)) runs one built-in tool instead of the full model - faster and cheaper, but limited to that tool and its fixed output structure. So `task` can't be combined with a custom `response_format`; reach for a full completion (like [your first request](#your-first-request)) when you need the whole model or your own schema.
+
+The `tasks.*` helpers are the shortest way - each takes a source and returns the raw result (typed `unknown`, so validate before use):
 
 ```ts
 await interfaze.tasks.ocr(url);
@@ -251,7 +250,7 @@ await interfaze.tasks.translate(text, { to: "Spanish" });
 await interfaze.tasks.forecast(csvUrl, { periods: 30, unit: "days" });
 ```
 
-Each returns `unknown`, so validate before use. For a multi-part message, set `task` on a normal call instead:
+For a multi-part message (text plus an input), set `task` on a normal `create` call - the result comes back on `message.content`:
 
 ```ts
 const res = await interfaze.chat.completions.create({
@@ -261,7 +260,20 @@ const res = await interfaze.chat.completions.create({
 const { result } = JSON.parse(res.choices[0]?.message.content ?? "{}"); // same output as tasks.ocr()
 ```
 
-Trade-offs versus a full completion: a task runs **one** built-in tool (not the full model), only one at a time, and its output is a **fixed structure you can't customize** - so `task` can't be combined with a custom `response_format`. Reach for a normal completion (like [your first request](#your-first-request)) when you need the full model or your own schema.
+Or a `<task>…</task>` system message plus an empty response schema:
+
+```ts
+import { emptyTaskSchema } from "interfaze";
+
+const res = await interfaze.chat.completions.create({
+  messages: [
+    { role: "system", content: "<task>ocr</task>" },
+    { role: "user", content: [{ type: "text", text: "Extract the total." }, inputs.image(url)] },
+  ],
+  response_format: emptyTaskSchema(), // an empty JSON schema
+});
+const { result } = JSON.parse(res.choices[0]?.message.content ?? "{}");
+```
 
 ## Guardrails
 
