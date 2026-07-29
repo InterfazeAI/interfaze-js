@@ -1,10 +1,10 @@
-# interfaze
+# Interfaze Typescript and Javascript SDK
 
 The official [Interfaze](https://interfaze.ai) SDK for TypeScript/JavaScript
 
 - **Familiar chat surface** - `chat.completions`, streaming, tools, and structured output.
-- **Typed Interfaze extras** - `precontext` (internal tool output), `reasoning`, and `vcache` (semantic-cache hit) on every response.
-- **One-line task helpers** - OCR, web search, scraping, speech-to-text, translation, object/GUI detection, forecasting.
+- **Typed `precontext`** - the raw metadata Interfaze returns with a completion (bounding boxes, confidence scores, task results), fully typed.
+- **[run_task](https://interfaze.ai/docs/run-tasks)** - run a single built-in task (OCR, web search, scraping, speech-to-text, translation, object/GUI detection, forecasting) without the full model.
 - **Multimodal inputs** - images, PDFs, audio, video, and CSV, by URL or base64.
 - **Universal** - Node 18+, browsers, and edge/workers; ESM + CommonJS; fully typed.
 
@@ -25,123 +25,220 @@ import { Interfaze } from "interfaze";
 const interfaze = new Interfaze({ apiKey: "sk_..." }); // or set INTERFAZE_API_KEY and call new Interfaze()
 ```
 
+## Your first request
+
+This guide will get you started with your first request to Interfaze, which follows the Chat Completions API standard.
+
+```ts
+import { Interfaze, responseFormat } from "interfaze";
+import { z } from "zod";
+
+const interfaze = new Interfaze();
+
+const IdCard = z.object({
+  first_name: z.string(),
+  last_name: z.string(),
+  dob: z.string().describe("Date of birth on the ID"),
+  licence_number: z.string(),
+});
+
+const res = await interfaze.chat.completions.create({
+  messages: [
+    {
+      role: "user",
+      content: [
+        { type: "text", text: "Extract the details from this ID." },
+        { type: "image_url", image_url: { url: "https://r2public.jigsawstack.com/interfaze/examples/id.jpg" } },
+      ],
+    },
+  ],
+  response_format: responseFormat(z.toJSONSchema(IdCard), "id_card"),
+});
+
+const idCard = JSON.parse(res.choices[0]?.message.content ?? "{}");
+console.log(idCard);                                       // your IdCard schema
+console.log("OCR result:", res.precontext?.[0]?.result);   // the raw OCR that produced it
+```
+
+## precontext
+
+Alongside the answer, a response carries `precontext` - the raw metadata Interfaze produced while answering:
+
+```ts
+for (const p of res.precontext ?? []) {
+  console.log(p.name, p.result); // e.g. "ocr" -> { text, boxes, confidence, … }
+}
+```
+
 ## Chat
 
 ```ts
 const res = await interfaze.chat.completions.create({
-  messages: [{ role: "user", content: "Write a haiku about deterministic AI." }],
+  messages: [{ role: "user", content: "Which US public companies reported earnings today?" }],
 });
 
 res.choices[0]?.message.content;
-res.vcache; // semantic-cache hit
 ```
 
-A standard `ChatCompletion`, plus `vcache`, and `precontext`/`reasoning` when they apply.
+The result is a standard `ChatCompletion` with `precontext`, `vcache`, and `reasoning` added (a web search backs the answer here).
 
 ### Streaming
 
+Stream the reply as it's generated; the final completion still carries `precontext` and `reasoning`.
+
 ```ts
 const stream = interfaze.chat.completions.stream({
-  messages: [{ role: "user", content: "Tell me a story." }],
+  messages: [{ role: "user", content: "Summarize this week's top AI research and cite your sources." }],
 });
 
 for await (const text of stream.textDeltas()) process.stdout.write(text);
 
-const final = await stream.finalChatCompletion(); // .reasoning, .precontext
+const final = await stream.finalChatCompletion(); // .precontext (the sources), .reasoning
 ```
 
-`textDeltas()` yields display-ready text; `<think>`/`<precontext>` are stripped and returned structured on `finalChatCompletion()`.
+`textDeltas()` yields display-ready text - the inline `<think>`/`<precontext>` side-channels are stripped and returned structured on `finalChatCompletion()`. For the raw chunk iterator, use `create({ stream: true })`.
 
 ### Structured output
 
+`responseFormat()` takes a JSON Schema - or a zod schema via `z.toJSONSchema()` - and normalizes it for Interfaze:
+
 ```ts
 import { responseFormat } from "interfaze";
+import { z } from "zod";
 
-const res = await interfaze.chat.completions.create({
-  messages: [{ role: "user", content: "What is the current weather in Tokyo?" }],
-  response_format: responseFormat({
-    type: "object",
-    properties: { city: { type: "string" }, temp_c: { type: "number" } },
-    required: ["city", "temp_c"],
-  }),
-});
-```
-
-With zod: `responseFormat(z.toJSONSchema(schema))`.
-
-### Reasoning
-
-```ts
-const res = await interfaze.chat.completions.create({
-  reasoning_effort: "high", // also accepts Interfaze's on / off / auto
-  messages: [{ role: "user", content: "Why is renewable energy important?" }],
+const Invoice = z.object({
+  vendor: z.string(),
+  currency: z.string(),
+  total: z.number(),
+  line_items: z.array(z.object({ description: z.string(), amount: z.number() })),
 });
 
-res.reasoning;
+const res = await interfaze.chat.completions.create({
+  messages: [
+    {
+      role: "user",
+      content: "Extract the invoice:\nAcme Corp\n3x Widget @ $30\n1x Shipping @ $10\nTotal: $100 USD",
+    },
+  ],
+  response_format: responseFormat(z.toJSONSchema(Invoice), "invoice"),
+});
+
+const invoice = JSON.parse(res.choices[0]?.message.content ?? "{}");
 ```
+
+Prefer a plain schema?
+Pass one directly:
+`responseFormat({ type: "object", properties: { … }, required: [ … ] })`. `message.content` comes back as a JSON string, so parse it - and keep the root an `object`, since a non-object root is wrapped under a `result` key.
 
 ### Tools and function calling
 
+Interfaze supports tools - define `tools`, read `message.tool_calls`, run them, then pass the results back for the final answer.
+
+```ts
+import type { ChatCompletionMessageParam, ChatCompletionTool } from "interfaze";
+
+const tools: ChatCompletionTool[] = [
+  {
+    type: "function",
+    function: {
+      name: "get_weather",
+      description: "Get the current weather for a city.",
+      parameters: {
+        type: "object",
+        properties: { city: { type: "string", description: "e.g. Tokyo" } },
+        required: ["city"],
+      },
+    },
+  },
+];
+
+const messages: ChatCompletionMessageParam[] = [{ role: "user", content: "What's the weather in Tokyo?" }];
+const res = await interfaze.chat.completions.create({ messages, tools, tool_choice: "auto" });
+
+const message = res.choices[0]?.message;
+if (message) messages.push(message); // the assistant turn, carrying any tool_calls
+
+for (const call of message?.tool_calls ?? []) {
+  if (call.type !== "function") continue;
+  const { city } = JSON.parse(call.function.arguments);
+  messages.push({ role: "tool", tool_call_id: call.id, content: await getWeather(city) });
+}
+
+// send the tool results back for the final answer
+const final = await interfaze.chat.completions.create({ messages, tools, tool_choice: "auto" });
+```
+
+## Reasoning
+
+Ask for reasoning with `reasoning_effort`; the text comes back on `res.reasoning`.
+
 ```ts
 const res = await interfaze.chat.completions.create({
-  messages: [{ role: "user", content: "What's the weather in Tokyo?" }],
-  tools: [{ type: "function", function: { name: "get_weather", parameters: schema } }],
+  reasoning_effort: "high", // also accepts Interfaze's "on" / "off" / "auto"
+  messages: [{ role: "user", content: "Which region should we launch in first, and why?" }],
 });
 
-for (const call of res.choices[0]?.message.tool_calls ?? []) {
-  if (call.type !== "function") continue;
-  const args = JSON.parse(call.function.arguments);
-}
+res.reasoning; // reasoning text - present with reasoning_effort and no schema
 ```
 
 ## Inputs
 
-By URL, dropped into a prompt:
+Interfaze takes the content parts inline:
 
 ```ts
-import { inputs } from "interfaze";
-
 await interfaze.chat.completions.create({
   messages: [
     {
       role: "user",
       content: [
-        { type: "text", text: "What's in this image, and summarize the PDF." },
-        inputs.image("https://…/photo.png"),
-        inputs.file("https://…/report.pdf"),
+        { type: "text", text: "What's in this image?" },
+        { type: "image_url", image_url: { url: "https://…/photo.png" } },
       ],
     },
   ],
 });
 ```
 
-From base64 / raw bytes URI:
+`inputs.*` is a typed shortcut for the same parts - it picks the right part type and handles base64 and local files:
+
+```ts
+import { inputs } from "interfaze";
+
+inputs.image("https://…/photo.png");                         // image_url part
+inputs.file("https://…/report.pdf");                         // file part (pdf/csv/xml/json/txt)
+inputs.audio("https://…/call.wav");                          // input_audio part
+inputs.video("https://…/clip.mp4");                          // file part (no native video part)
+```
+
+From base64 / raw bytes, or a local file (Node):
 
 ```ts
 inputs.image(await inputs.dataUrl(pngBytes, "image/png"));
 inputs.file(await inputs.dataUrl(pdfBytes, "application/pdf"), { filename: "report.pdf" });
+inputs.image(await inputs.fromPath("./photo.png"));          // reads the file into a data: URI
 ```
 
-From a local file (Node) - `fromPath()` reads it into a `data:` URI:
+Those build a `data:` URL for you - you can also write one inline yourself, the traditional and very common way:
 
 ```ts
-inputs.image(await inputs.fromPath("./photo.png"));
-inputs.file(await inputs.fromPath("./report.pdf"));
+await interfaze.chat.completions.create({
+  messages: [
+    {
+      role: "user",
+      content: [
+        { type: "text", text: "What's in this image?" },
+        { type: "image_url", image_url: { url: `data:image/png;base64,${imageBase64}` } },
+      ],
+    },
+  ],
+});
 ```
 
-Audio and video:
-
-```ts
-inputs.audio("https://…/call.wav");                          // input_audio part
-inputs.video("https://…/clip.mp4");                          // file part (no native video part)
-inputs.video(await inputs.dataUrl(clipBytes, "video/mp4"));  // video from base64
-```
-
-`inputs.autoPart(src)` picks the part from the media type - image → `image_url`, audio → `input_audio`, else `file`. It's what the task helpers use.
+`inputs.autoPart(src)` picks the part from the media type - image → `image_url`, audio → `input_audio`, else `file`. Interfaze rejects `image/gif` and `image/avif` client-side, and `inputs.fromPath` is Node-only.
 
 ## Tasks
 
-Each helper forces one specialized tool - [faster and cheaper](https://interfaze.ai/docs/run-tasks) than a completion. All return `unknown`, so validate before use.
+Run a single built-in task ([run_task](https://interfaze.ai/docs/run-tasks)) instead of a full completion. It runs one part of the model rather than the whole thing, so it's faster and cheaper - the downside is you get one task at a time, with a fixed output structure you can't customize:
 
 ```ts
 await interfaze.tasks.ocr(url);
@@ -154,16 +251,21 @@ await interfaze.tasks.translate(text, { to: "Spanish" });
 await interfaze.tasks.forecast(csvUrl, { periods: 30, unit: "days" });
 ```
 
-Most take an optional `{ prompt }` to steer. For multi-part messages, pass `task` directly:
+Each returns `unknown`, so validate before use. For a multi-part message, set `task` on a normal call instead:
 
 ```ts
 const res = await interfaze.chat.completions.create({
   task: "ocr",
   messages: [{ role: "user", content: [{ type: "text", text: "Extract the total." }, inputs.image(url)] }],
 });
+const { result } = JSON.parse(res.choices[0]?.message.content ?? "{}"); // same output as tasks.ocr()
 ```
 
+Trade-offs versus a full completion: a task runs **one** built-in tool (not the full model), only one at a time, and its output is a **fixed structure you can't customize** - so `task` can't be combined with a custom `response_format`. Reach for a normal completion (like [your first request](#your-first-request)) when you need the full model or your own schema.
+
 ## Guardrails
+
+Enable safety categories with `guard`; a blocked request comes back as a normal completion, not an exception.
 
 ```ts
 const res = await interfaze.chat.completions.create({
@@ -172,27 +274,23 @@ const res = await interfaze.chat.completions.create({
 });
 ```
 
-A match returns the plain string `unsafe S1` as the content. See the exported `GUARD_CODES` / `GUARD_LABELS`.
+A match returns the plain string `unsafe S1` as `message.content` - so check for it. See the exported `GUARD_CODES` / `GUARD_LABELS`.
 
-## Interfaze extras
+## Semantic cache
 
-Every response carries fields a plain OpenAI client drops:
+Interfaze serves semantically-similar requests from a cache. `res.vcache` reports whether a response was a cache hit:
 
 ```ts
 const res = await interfaze.chat.completions.create({
-  messages: [{ role: "user", content: "Extract the total from this receipt." }],
+  messages: [{ role: "user", content: "..." }],
 });
 
-res.vcache;     // boolean - the semantic cache served this
-res.reasoning;  // string - present with reasoning_effort and no schema
-res.debug;      // admin-only payload (needs adminKey)
-
-for (const p of res.precontext ?? []) {
-  console.log(p.name, p.result); // ocr / web_search / scraper / stt / forecast / code_sandbox / …
-}
+res.vcache; // boolean
 ```
 
-Steer the router, cache, and streaming from the client:
+## Client options
+
+Set router, cache, and streaming behavior once on the client:
 
 ```ts
 const interfaze = new Interfaze({
@@ -204,31 +302,33 @@ const interfaze = new Interfaze({
 
 ## Errors
 
+Interfaze re-exports typed error classes to catch and narrow on:
+
 ```ts
 import { BadRequestError, InterfazeError, RateLimitError } from "interfaze";
 ```
 
-`InterfazeError` is client-side (missing key, invalid guard code, stream misuse). Everything else extends the OpenAI `APIError` with `status` and `code` - `BadRequestError` (400), `AuthenticationError` (401), `RateLimitError` (429), and so on.
+`InterfazeError` is client-side (missing key, invalid guard code, stream misuse). Everything else is an `APIError` subclass carrying `status` and `code` - `BadRequestError` (400), `AuthenticationError` (401), `RateLimitError` (429), and so on.
 
 ## Capabilities
 
-| Use case                   | Entry point                                   |
-| -------------------------- | --------------------------------------------- |
-| [Chat](#chat)              | `chat.completions.create`                     |
-| [Streaming](#streaming)    | `chat.completions.stream`                     |
-| [Structured output](#structured-output) | `responseFormat()`              |
-| [Reasoning](#reasoning)    | `reasoning_effort`                            |
-| [Tools](#tools-and-function-calling) | `tools`                             |
-| [Multimodal inputs](#inputs) | `inputs.*`                                  |
-| [OCR](#tasks)              | `tasks.ocr`                                   |
-| [Object and GUI detection](#tasks) | `tasks.objectDetection`, `tasks.guiDetection` |
-| [Web search and scraping](#tasks) | `tasks.webSearch`, `tasks.scrape`      |
-| [Speech to text](#tasks)   | `tasks.transcribe`                            |
-| [Translation](#tasks)      | `tasks.translate`                             |
-| [Forecasting](#tasks)      | `tasks.forecast`                              |
-| Sandboxing            | prompt-driven                                 |
-| [Guardrails](#guardrails)  | `guard`                                       |
-| [Interfaze extras](#interfaze-extras) | `precontext`, `reasoning`, `vcache` |
+| Use case                                | Entry point                                   |
+| --------------------------------------- | --------------------------------------------- |
+| [Chat](#chat)                           | `chat.completions.create`                     |
+| [Streaming](#streaming)                 | `chat.completions.stream`                     |
+| [Structured output](#structured-output) | `responseFormat()`                            |
+| [Reasoning](#reasoning)                 | `reasoning_effort`                            |
+| [Tools](#tools-and-function-calling)    | `tools`                                       |
+| [Multimodal inputs](#inputs)            | `inputs.*`                                    |
+| [OCR](#tasks)                           | `tasks.ocr`                                   |
+| [Object and GUI detection](#tasks)      | `tasks.objectDetection`, `tasks.guiDetection` |
+| [Web search and scraping](#tasks)       | `tasks.webSearch`, `tasks.scrape`             |
+| [Speech to text](#tasks)                | `tasks.transcribe`                            |
+| [Translation](#tasks)                   | `tasks.translate`                             |
+| [Forecasting](#tasks)                   | `tasks.forecast`                              |
+| [Guardrails](#guardrails)               | `guard`                                       |
+| [precontext](#precontext)               | `res.precontext`                              |
+| [Semantic cache](#semantic-cache)       | `res.vcache`                                  |
 
 ## Examples
 
