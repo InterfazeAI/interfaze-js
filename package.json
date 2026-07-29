@@ -47,8 +47,8 @@
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
-    "lint": "biome check .",
     "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "check:pkg": "publint --strict && attw --pack",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -70,7 +70,6 @@
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",
-    "@biomejs/biome": "2.5.5",
     "@types/node": "~22.20.1",
     "@vitest/coverage-v8": "^2.1.9",
     "openai": "~6.47.0",
