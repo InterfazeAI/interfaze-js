@@ -180,7 +180,15 @@ res.reasoning; // reasoning text - present with reasoning_effort and no schema
 
 ## Inputs
 
-Interfaze takes the content parts inline:
+Interfaze handles images, PDFs, audio, video, and CSV. The simplest way is to drop a public URL into the prompt - Interfaze fetches and reads it:
+
+```ts
+await interfaze.chat.completions.create({
+  messages: [{ role: "user", content: "Summarize this document: https://arxiv.org/pdf/1706.03762" }],
+});
+```
+
+Or attach it as a content part - a `file` part for documents, audio, and video; `image_url` for images:
 
 ```ts
 await interfaze.chat.completions.create({
@@ -188,50 +196,33 @@ await interfaze.chat.completions.create({
     {
       role: "user",
       content: [
-        { type: "text", text: "What's in this image?" },
-        { type: "image_url", image_url: { url: "https://…/photo.png" } },
+        { type: "text", text: "Summarize this document." },
+        { type: "file", file: { filename: "paper.pdf", file_data: "https://arxiv.org/pdf/1706.03762" } },
       ],
     },
   ],
 });
 ```
 
-`inputs.*` is a typed shortcut for the same parts - it picks the right part type and handles base64 and local files:
+`file_data` also takes a base64 data URI:
+
+```ts
+{ type: "file", file: { filename: "report.pdf", file_data: `data:application/pdf;base64,${base64}` } }
+```
+
+`inputs.*` is a typed shortcut that builds these parts - and turns raw bytes or a local file into a data URI for you:
 
 ```ts
 import { inputs } from "interfaze";
 
-inputs.image("https://…/photo.png");                         // image_url part
-inputs.file("https://…/report.pdf");                         // file part (pdf/csv/xml/json/txt)
-inputs.audio("https://…/call.wav");                          // input_audio part
-inputs.video("https://…/clip.mp4");                          // file part (no native video part)
+inputs.image("https://…/photo.png");                       // image_url part
+inputs.file("https://…/report.pdf");                       // file part
+inputs.audio("https://…/call.wav");                        // input_audio part
+inputs.file(await inputs.dataUrl(pdfBytes, "application/pdf"), { filename: "report.pdf" }); // bytes / Blob
+inputs.image(await inputs.fromPath("./photo.png"));        // Node: read a local file
 ```
 
-From base64 / raw bytes, or a local file (Node):
-
-```ts
-inputs.image(await inputs.dataUrl(pngBytes, "image/png"));
-inputs.file(await inputs.dataUrl(pdfBytes, "application/pdf"), { filename: "report.pdf" });
-inputs.image(await inputs.fromPath("./photo.png"));          // reads the file into a data: URI
-```
-
-Those build a `data:` URL for you - you can also write one inline yourself, the traditional and very common way:
-
-```ts
-await interfaze.chat.completions.create({
-  messages: [
-    {
-      role: "user",
-      content: [
-        { type: "text", text: "What's in this image?" },
-        { type: "image_url", image_url: { url: `data:image/png;base64,${imageBase64}` } },
-      ],
-    },
-  ],
-});
-```
-
-`inputs.autoPart(src)` picks the part from the media type - image → `image_url`, audio → `input_audio`, else `file`. Interfaze rejects `image/gif` and `image/avif` client-side, and `inputs.fromPath` is Node-only.
+Interfaze rejects `image/gif` and `image/avif` client-side, and `inputs.fromPath` is Node-only.
 
 ## Tasks
 
