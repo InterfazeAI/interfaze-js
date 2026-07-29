@@ -26,7 +26,7 @@ describe("models endpoints (interfaze#218 shapes)", () => {
         message: "The model 'nope' does not exist",
         type: "invalid_request_error",
         code: "model_not_found",
-      }),
+      })
     );
     await expect(interfaze.models.retrieve("nope")).rejects.toThrow();
   });

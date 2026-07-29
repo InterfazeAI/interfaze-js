@@ -18,7 +18,7 @@ export function fixture<T = unknown>(name: string): T {
 /** Build an Interfaze client whose transport is a mock `fetch`, capturing every request. */
 export function mockInterfaze(
   responder: (req: CapturedRequest) => Response | Promise<Response>,
-  options: Partial<InterfazeOptions> = {},
+  options: Partial<InterfazeOptions> = {}
 ): { interfaze: Interfaze; calls: CapturedRequest[] } {
   const calls: CapturedRequest[] = [];
   const fetchImpl = async (input: unknown, init: RequestInit = {}): Promise<Response> => {
@@ -78,7 +78,7 @@ export function systemContent(body: Record<string, unknown> | undefined): string
 /** Build a synthetic chat.completion body, for shapes not worth a fixture file. */
 export function completion(
   content: unknown = "Hi!",
-  options: { finishReason?: string; toolCalls?: unknown[] } & Record<string, unknown> = {},
+  options: { finishReason?: string; toolCalls?: unknown[] } & Record<string, unknown> = {}
 ): Record<string, unknown> {
   const { finishReason = "stop", toolCalls, ...extra } = options;
   const message: Record<string, unknown> = { role: "assistant", content, refusal: null };

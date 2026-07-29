@@ -2,7 +2,6 @@
 
 The official [Interfaze](https://interfaze.ai) SDK for TypeScript/JavaScript
 
-
 [Docs](https://interfaze.ai/docs) · [limits](https://interfaze.ai/docs/limits) · [pricing](https://interfaze.ai/pricing) · [dashboard](https://interfaze.ai) · [Python SDK](https://github.com/InterfazeAI/interfaze-python)
 
 ## Install
@@ -43,7 +42,12 @@ const res = await interfaze.chat.completions.create({
       role: "user",
       content: [
         { type: "text", text: "Extract the details from this ID." },
-        { type: "image_url", image_url: { url: "https://r2public.jigsawstack.com/interfaze/examples/id.jpg" } },
+        {
+          type: "image_url",
+          image_url: {
+            url: "https://r2public.jigsawstack.com/interfaze/examples/id.jpg",
+          },
+        },
       ],
     },
   ],
@@ -51,11 +55,11 @@ const res = await interfaze.chat.completions.create({
 });
 
 const idCard = JSON.parse(res.choices[0]?.message.content ?? "{}");
-console.log(idCard);                                       // your IdCard schema
-console.log("OCR result:", res.precontext?.[0]?.result);   // the raw OCR that produced it
+console.log(idCard); // your IdCard schema
+console.log("OCR result:", res.precontext?.[0]?.result); // the raw OCR that produced it
 ```
 
-## precontext
+## Precontext
 
 Alongside the answer, a response carries `precontext` - the raw metadata Interfaze produced while answering:
 
@@ -69,13 +73,18 @@ for (const p of res.precontext ?? []) {
 
 ```ts
 const res = await interfaze.chat.completions.create({
-  messages: [{ role: "user", content: "Which US public companies reported earnings today?" }],
+  messages: [
+    {
+      role: "user",
+      content: "Which US public companies reported earnings today?",
+    },
+  ],
 });
 
 res.choices[0]?.message.content;
 ```
 
-The result is a standard `ChatCompletion` with `precontext`, `vcache`, and `reasoning` added (a web search backs the answer here).
+The result is a standard `ChatCompletion` with `precontext`, and `reasoning` added (a web search backs the answer here).
 
 ### Streaming
 
@@ -83,7 +92,12 @@ Stream the reply as it's generated; the final completion still carries `preconte
 
 ```ts
 const stream = interfaze.chat.completions.stream({
-  messages: [{ role: "user", content: "Summarize this week's top AI research and cite your sources." }],
+  messages: [
+    {
+      role: "user",
+      content: "Summarize this week's top AI research and cite your sources.",
+    },
+  ],
 });
 
 for await (const text of stream.textDeltas()) process.stdout.write(text);
@@ -111,10 +125,7 @@ const res = await interfaze.chat.completions.create({
   messages: [
     {
       role: "user",
-      content: [
-        { type: "text", text: "Extract this receipt." },
-        inputs.image("https://jigsawstack.com/preview/vocr-example.jpg"),
-      ],
+      content: [{ type: "text", text: "Extract this receipt." }, inputs.image("https://jigsawstack.com/preview/vocr-example.jpg")],
     },
   ],
   response_format: responseFormat(z.toJSONSchema(Receipt), "receipt"),
@@ -150,7 +161,12 @@ const tools: ChatCompletionTool[] = [
 ];
 
 const messages: ChatCompletionMessageParam[] = [{ role: "user", content: "What's the weather in Tokyo?" }];
-const res = await interfaze.chat.completions.create({ messages, tools, tool_choice: "auto" });
+
+const res = await interfaze.chat.completions.create({
+  messages,
+  tools,
+  tool_choice: "auto",
+});
 
 const message = res.choices[0]?.message;
 if (message) messages.push(message); // the assistant turn, carrying any tool_calls
@@ -158,11 +174,19 @@ if (message) messages.push(message); // the assistant turn, carrying any tool_ca
 for (const call of message?.tool_calls ?? []) {
   if (call.type !== "function") continue;
   const { city } = JSON.parse(call.function.arguments);
-  messages.push({ role: "tool", tool_call_id: call.id, content: await getWeather(city) });
+  messages.push({
+    role: "tool",
+    tool_call_id: call.id,
+    content: await getWeather(city),
+  });
 }
 
 // send the tool results back for the final answer
-const final = await interfaze.chat.completions.create({ messages, tools, tool_choice: "auto" });
+const final = await interfaze.chat.completions.create({
+  messages,
+  tools,
+  tool_choice: "auto",
+});
 ```
 
 ## Reasoning
@@ -172,19 +196,29 @@ Ask for reasoning with `reasoning_effort`; the text comes back on `res.reasoning
 ```ts
 const res = await interfaze.chat.completions.create({
   reasoning_effort: "high", // also accepts Interfaze's "on" / "off" / "auto"
-  messages: [{ role: "user", content: "Which region should we launch in first, and why?" }],
+  messages: [
+    {
+      role: "user",
+      content: "Which region should we launch in first, and why?",
+    },
+  ],
 });
 
 res.reasoning; // reasoning text - present with reasoning_effort and no schema
 ```
 
-## Inputs
+## Multimodal Inputs
 
 Interfaze handles images, PDFs, audio, video, and CSV. The simplest way is to drop a public URL into the prompt - Interfaze fetches and reads it:
 
 ```ts
 await interfaze.chat.completions.create({
-  messages: [{ role: "user", content: "Summarize this document: https://arxiv.org/pdf/1706.03762" }],
+  messages: [
+    {
+      role: "user",
+      content: "Summarize this document: https://arxiv.org/pdf/1706.03762",
+    },
+  ],
 });
 ```
 
@@ -197,7 +231,13 @@ await interfaze.chat.completions.create({
       role: "user",
       content: [
         { type: "text", text: "Summarize this document." },
-        { type: "file", file: { filename: "paper.pdf", file_data: "https://arxiv.org/pdf/1706.03762" } },
+        {
+          type: "file",
+          file: {
+            filename: "paper.pdf",
+            file_data: "https://arxiv.org/pdf/1706.03762",
+          },
+        },
       ],
     },
   ],
@@ -215,11 +255,13 @@ await interfaze.chat.completions.create({
 ```ts
 import { inputs } from "interfaze";
 
-inputs.image("https://…/photo.png");                       // image_url part
-inputs.file("https://…/report.pdf");                       // file part
-inputs.audio("https://…/call.wav");                        // input_audio part
-inputs.file(await inputs.dataUrl(pdfBytes, "application/pdf"), { filename: "report.pdf" }); // bytes / Blob
-inputs.image(await inputs.fromPath("./photo.png"));        // Node: read a local file
+inputs.image("https://…/photo.png"); // image_url part
+inputs.file("https://…/report.pdf"); // file part
+inputs.audio("https://…/call.wav"); // input_audio part
+inputs.file(await inputs.dataUrl(pdfBytes, "application/pdf"), {
+  filename: "report.pdf",
+}); // bytes / Blob
+inputs.image(await inputs.fromPath("./photo.png")); // Node: read a local file
 ```
 
 Interfaze rejects `image/gif` and `image/avif` client-side, and `inputs.fromPath` is Node-only.
@@ -246,7 +288,12 @@ For a multi-part message (text plus an input), set `task` on a normal `create` c
 ```ts
 const res = await interfaze.chat.completions.create({
   task: "ocr",
-  messages: [{ role: "user", content: [{ type: "text", text: "Extract the total." }, inputs.image(url)] }],
+  messages: [
+    {
+      role: "user",
+      content: [{ type: "text", text: "Extract the total." }, inputs.image(url)],
+    },
+  ],
 });
 const { result } = JSON.parse(res.choices[0]?.message.content ?? "{}"); // same output as tasks.ocr()
 ```
@@ -259,7 +306,10 @@ import { emptyTaskSchema } from "interfaze";
 const res = await interfaze.chat.completions.create({
   messages: [
     { role: "system", content: "<task>ocr</task>" },
-    { role: "user", content: [{ type: "text", text: "Extract the total." }, inputs.image(url)] },
+    {
+      role: "user",
+      content: [{ type: "text", text: "Extract the total." }, inputs.image(url)],
+    },
   ],
   response_format: emptyTaskSchema(), // an empty JSON schema
 });
@@ -279,18 +329,6 @@ const res = await interfaze.chat.completions.create({
 
 A match returns the plain string `unsafe S1` as `message.content` - so check for it. See the exported `GUARD_CODES` / `GUARD_LABELS`.
 
-## Semantic cache
-
-Interfaze serves semantically-similar requests from a cache. `res.vcache` reports whether a response was a cache hit:
-
-```ts
-const res = await interfaze.chat.completions.create({
-  messages: [{ role: "user", content: "..." }],
-});
-
-res.vcache; // boolean
-```
-
 ## Client options
 
 Set router, cache, and streaming behavior once on the client:
@@ -298,8 +336,8 @@ Set router, cache, and streaming behavior once on the client:
 ```ts
 const interfaze = new Interfaze({
   showAdditionalInfo: true, // stream <precontext> deltas as they're produced
-  bypassMoe: true,          // skip the mixture-of-experts router
-  bypassCache: true,        // skip the semantic cache
+  bypassMoe: true, // skip the mixture-of-experts router
+  bypassCache: true, // skip the semantic cache
 });
 ```
 
@@ -330,8 +368,7 @@ import { BadRequestError, InterfazeError, RateLimitError } from "interfaze";
 | [Translation](#tasks)                   | `tasks.translate`                             |
 | [Forecasting](#tasks)                   | `tasks.forecast`                              |
 | [Guardrails](#guardrails)               | `guard`                                       |
-| [precontext](#precontext)               | `res.precontext`                              |
-| [Semantic cache](#semantic-cache)       | `res.vcache`                                  |
+| [Precontext](#precontext)               | `res.precontext`                              |
 
 ## Examples
 

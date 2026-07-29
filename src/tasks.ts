@@ -21,11 +21,7 @@ export class Tasks {
     this.#c = completions;
   }
 
-  async #run(
-    task: TaskName,
-    content: string | ChatCompletionContentPart[],
-    options?: RequestOptions,
-  ): Promise<unknown> {
+  async #run(task: TaskName, content: string | ChatCompletionContentPart[], options?: RequestOptions): Promise<unknown> {
     const res = await this.#c.create({ task, messages: [{ role: "user", content }] }, options);
     const raw = res.choices[0]?.message.content;
     if (!raw) return undefined;
@@ -73,17 +69,10 @@ export class Tasks {
   }
 
   /** Forecast a time series from a CSV (MoE-selected, so prompt-driven; reads the `forecast` precontext). */
-  async forecast(
-    csvSource: string,
-    opts: { periods?: number; unit?: string } = {},
-    options?: RequestOptions,
-  ): Promise<unknown> {
+  async forecast(csvSource: string, opts: { periods?: number; unit?: string } = {}, options?: RequestOptions): Promise<unknown> {
     const n = opts.periods ?? 10;
     const unit = opts.unit ?? "days";
-    const res = await this.#c.create(
-      { messages: [{ role: "user", content: `Forecast the next ${n} ${unit} of this: ${csvSource}` }] },
-      options,
-    );
+    const res = await this.#c.create({ messages: [{ role: "user", content: `Forecast the next ${n} ${unit} of this: ${csvSource}` }] }, options);
     const pc = res.precontext?.find((p) => p.name === "forecast");
     return pc?.result ?? res.choices[0]?.message.content ?? undefined;
   }

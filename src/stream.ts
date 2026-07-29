@@ -43,10 +43,9 @@ export class InterfazeChatCompletionStream implements AsyncIterable<ChatCompleti
 
   #getRaw(): Promise<AsyncIterable<ChatCompletionChunk>> {
     if (!this.#raw) {
-      this.#raw = this.#openai.chat.completions.create(
-        { ...this.#body, stream: true } as never,
-        this.#options,
-      ) as unknown as Promise<AsyncIterable<ChatCompletionChunk>>;
+      this.#raw = this.#openai.chat.completions.create({ ...this.#body, stream: true } as never, this.#options) as unknown as Promise<
+        AsyncIterable<ChatCompletionChunk>
+      >;
     }
     return this.#raw;
   }

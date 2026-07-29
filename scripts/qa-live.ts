@@ -54,7 +54,7 @@ await check("structured output (responseFormat)", async () => {
         properties: { greeting: { type: "string" }, count: { type: "number" } },
         required: ["greeting", "count"],
       },
-      "greeting",
+      "greeting"
     ),
   });
   const p = JSON.parse(r.choices[0]!.message.content!);
@@ -219,10 +219,7 @@ await check("input: base64 image (data URI)", async () => {
     messages: [
       {
         role: "user",
-        content: [
-          { type: "text", text: "What is in this image? One sentence." },
-          inputs.image(await inputs.dataUrl(bytes, "image/jpeg")),
-        ],
+        content: [{ type: "text", text: "What is in this image? One sentence." }, inputs.image(await inputs.dataUrl(bytes, "image/jpeg"))],
       },
     ],
   });

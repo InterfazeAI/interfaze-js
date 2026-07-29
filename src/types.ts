@@ -39,18 +39,10 @@ interface InterfazeExtraParams {
   guard?: GuardCode[];
 }
 
-export type InterfazeChatCompletionCreateParamsNonStreaming = Omit<
-  ChatCompletionCreateParamsNonStreaming,
-  "reasoning_effort" | "model"
-> &
+export type InterfazeChatCompletionCreateParamsNonStreaming = Omit<ChatCompletionCreateParamsNonStreaming, "reasoning_effort" | "model"> &
   InterfazeExtraParams & { stream?: false | null };
 
-export type InterfazeChatCompletionCreateParamsStreaming = Omit<
-  ChatCompletionCreateParamsStreaming,
-  "reasoning_effort" | "model"
-> &
+export type InterfazeChatCompletionCreateParamsStreaming = Omit<ChatCompletionCreateParamsStreaming, "reasoning_effort" | "model"> &
   InterfazeExtraParams & { stream: true };
 
-export type InterfazeChatCompletionCreateParams =
-  | InterfazeChatCompletionCreateParamsNonStreaming
-  | InterfazeChatCompletionCreateParamsStreaming;
+export type InterfazeChatCompletionCreateParams = InterfazeChatCompletionCreateParamsNonStreaming | InterfazeChatCompletionCreateParamsStreaming;

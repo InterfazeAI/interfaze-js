@@ -18,11 +18,7 @@ const STATUS_MAP = [
   {
     status: 400,
     ExcType: BadRequestError,
-    body: errorBody(
-      "Field 'temperature': Too big: expected number to be <=1",
-      "invalid_request_error",
-      "invalid_request",
-    ),
+    body: errorBody("Field 'temperature': Too big: expected number to be <=1", "invalid_request_error", "invalid_request"),
   },
   {
     status: 401,
@@ -88,7 +84,7 @@ describe("task + response_format conflict", () => {
           type: "json_schema",
           json_schema: { name: "s", schema: { type: "object", properties: { a: { type: "string" } } } },
         },
-      }),
+      })
     ).toThrow(InterfazeError);
     expect(calls).toHaveLength(0);
   });
@@ -101,7 +97,7 @@ describe("invalid guard code", () => {
       interfaze.chat.completions.create({
         guard: ["NOT_A_CODE" as never],
         messages: [{ role: "user", content: "x" }],
-      }),
+      })
     ).toThrow(InterfazeError);
     expect(calls).toHaveLength(0);
   });

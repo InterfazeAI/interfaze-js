@@ -22,12 +22,7 @@ const mkChunk = (delta: object, finish: string | null = null) => ({
 // A plain stream with NO side-channels (neither <think> nor <precontext>) — the accumulator must not hang.
 const plainChunks = [mkChunk({ content: "Hello " }), mkChunk({ content: "world" }), mkChunk({}, "stop")];
 
-const fencedJson = [
-  mkChunk({ content: "```json\n" }),
-  mkChunk({ content: '{"city": "Tokyo"}' }),
-  mkChunk({ content: "\n```" }),
-  mkChunk({}, "stop"),
-];
+const fencedJson = [mkChunk({ content: "```json\n" }), mkChunk({ content: '{"city": "Tokyo"}' }), mkChunk({ content: "\n```" }), mkChunk({}, "stop")];
 
 const usageChunks = [
   mkChunk({ content: "Hi" }),
@@ -93,9 +88,7 @@ describe("streaming accumulator", () => {
 
   it("finalChatCompletion works without iterating first", async () => {
     const { interfaze } = mockInterfaze(() => sseResponse(plainChunks));
-    const final = await interfaze.chat.completions
-      .stream({ messages: [{ role: "user", content: "hi" }] })
-      .finalChatCompletion();
+    const final = await interfaze.chat.completions.stream({ messages: [{ role: "user", content: "hi" }] }).finalChatCompletion();
     expect(final.choices[0]!.message.content).toBe("Hello world");
   });
 
@@ -190,14 +183,11 @@ describe("streaming accumulator", () => {
   it("surfaces an aborted signal as APIUserAbortError instead of a silent end", async () => {
     const controller = new AbortController();
     const { interfaze } = mockInterfaze(() => sseResponse(plainChunks));
-    const s = interfaze.chat.completions.stream(
-      { messages: [{ role: "user", content: "x" }] },
-      { signal: controller.signal },
-    );
+    const s = interfaze.chat.completions.stream({ messages: [{ role: "user", content: "x" }] }, { signal: controller.signal });
     await expect(
       (async () => {
         for await (const _chunk of s) controller.abort();
-      })(),
+      })()
     ).rejects.toBeInstanceOf(APIUserAbortError);
   });
 });
