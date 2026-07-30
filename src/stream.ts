@@ -1,11 +1,8 @@
-import type OpenAI from "openai";
-import { APIUserAbortError } from "openai";
-import type { ChatCompletionChunk } from "openai/resources/chat/completions/completions";
+import type { ChatCompletionChunk, Client, RequestOptions } from "./_compat.js";
+import { APIUserAbortError } from "./_compat.js";
 
 import { InterfazeError } from "./errors.js";
 import type { InterfazeChatCompletion, Precontext } from "./types.js";
-
-type RequestOptions = OpenAI.RequestOptions;
 
 interface ToolCallAcc {
   id: string;
@@ -15,7 +12,7 @@ interface ToolCallAcc {
 
 /** Streaming helper that folds the raw `create({stream:true})` iterable itself. */
 export class InterfazeChatCompletionStream implements AsyncIterable<ChatCompletionChunk> {
-  #openai: OpenAI;
+  #client: Client;
   #body: Record<string, unknown>;
   #options: RequestOptions | undefined;
   #stripFence: boolean;
@@ -34,8 +31,8 @@ export class InterfazeChatCompletionStream implements AsyncIterable<ChatCompleti
   #systemFingerprint: string | undefined;
   #toolCalls = new Map<number, ToolCallAcc>();
 
-  constructor(openai: OpenAI, body: Record<string, unknown>, options?: RequestOptions, stripFence = false) {
-    this.#openai = openai;
+  constructor(client: Client, body: Record<string, unknown>, options?: RequestOptions, stripFence = false) {
+    this.#client = client;
     this.#body = body;
     this.#options = options;
     this.#stripFence = stripFence;
@@ -43,7 +40,7 @@ export class InterfazeChatCompletionStream implements AsyncIterable<ChatCompleti
 
   #getRaw(): Promise<AsyncIterable<ChatCompletionChunk>> {
     if (!this.#raw) {
-      this.#raw = this.#openai.chat.completions.create({ ...this.#body, stream: true } as never, this.#options) as unknown as Promise<
+      this.#raw = this.#client.chat.completions.create({ ...this.#body, stream: true } as never, this.#options) as unknown as Promise<
         AsyncIterable<ChatCompletionChunk>
       >;
     }

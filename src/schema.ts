@@ -1,4 +1,4 @@
-import type { ResponseFormatJSONSchema } from "openai/resources/shared";
+import type { ResponseFormatJSONSchema } from "./_compat.js";
 
 type JSONSchema = Record<string, unknown>;
 

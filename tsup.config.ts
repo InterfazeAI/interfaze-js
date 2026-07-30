@@ -9,6 +9,9 @@ export default defineConfig({
   target: "es2022",
   treeshake: true,
   splitting: false,
-  // `openai` (and optional `zod`) stay external — they're deps, not bundled.
-  external: ["openai", "zod"],
+  noExternal: [/^openai(\/|$)/],
+  external: ["zod"],
+  esbuildOptions(options) {
+    options.sourcesContent = false;
+  },
 });

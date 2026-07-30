@@ -1,14 +1,10 @@
-import type {
-  ChatCompletion,
-  ChatCompletionCreateParamsNonStreaming,
-  ChatCompletionCreateParamsStreaming,
-} from "openai/resources/chat/completions/completions";
+import type { ChatCompletion, ChatCompletionCreateParamsNonStreaming, ChatCompletionCreateParamsStreaming } from "./_compat.js";
 import type { TASK_NAMES, GUARD_CODES } from "./constants.js";
 
 export type TaskName = (typeof TASK_NAMES)[number];
 export type GuardCode = (typeof GUARD_CODES)[number];
 
-/** Wider than the OpenAI enum — Interfaze also accepts `on`/`off`/`auto`. */
+/** Wider than the base enum — Interfaze also accepts `on`/`off`/`auto`. */
 export type ReasoningEffort = "minimal" | "low" | "medium" | "high" | "on" | "off" | "auto";
 
 /** One internal task's raw output, surfaced in `response.precontext`. */

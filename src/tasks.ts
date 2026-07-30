@@ -1,10 +1,7 @@
-import type OpenAI from "openai";
-import type { ChatCompletionContentPart } from "openai/resources/chat/completions/completions";
+import type { ChatCompletionContentPart, RequestOptions } from "./_compat.js";
 import type { InterfazeCompletions } from "./chat.js";
 import { autoPart } from "./inputs.js";
 import type { TaskName } from "./types.js";
-
-type RequestOptions = OpenAI.RequestOptions;
 
 function textPart(text: string): ChatCompletionContentPart {
   return { type: "text", text };

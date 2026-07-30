@@ -1,7 +1,14 @@
-import type OpenAI from "openai";
-import type { APIPromise } from "openai";
-import type { Stream } from "openai/streaming";
-import type { ChatCompletion, ChatCompletionChunk, ChatCompletionMessageParam } from "openai/resources/chat/completions/completions";
+import type {
+  APIPromise,
+  AutoParseableResponseFormat,
+  ChatCompletion,
+  ChatCompletionChunk,
+  ChatCompletionMessageParam,
+  Client,
+  ParsedChatCompletion,
+  RequestOptions,
+  Stream,
+} from "./_compat.js";
 
 import { INTERFAZE_MODEL } from "./constants.js";
 import { InterfazeError } from "./errors.js";
@@ -9,13 +16,12 @@ import { guardTag } from "./guard.js";
 import { emptyTaskSchema } from "./schema.js";
 import { InterfazeChatCompletionStream, stripJsonFence } from "./stream.js";
 import type {
+  GuardCode,
   InterfazeChatCompletion,
+  InterfazeChatCompletionCreateParams,
   InterfazeChatCompletionCreateParamsNonStreaming,
   InterfazeChatCompletionCreateParamsStreaming,
-  InterfazeChatCompletionCreateParams,
 } from "./types.js";
-
-type RequestOptions = OpenAI.RequestOptions;
 
 export function toInterfaze(raw: ChatCompletion, opts: { stripFence: boolean }): InterfazeChatCompletion {
   const r = raw as InterfazeChatCompletion;
@@ -79,10 +85,15 @@ function prepare(params: InterfazeChatCompletionCreateParams): {
   return { body, stripFence: (rf as { type?: string })?.type === "json_object" };
 }
 
+export type InterfazeChatCompletionParseParams<T> = Omit<InterfazeChatCompletionCreateParamsNonStreaming, "response_format" | "task"> & {
+  response_format: AutoParseableResponseFormat<T>;
+  guard?: GuardCode[];
+};
+
 export class InterfazeCompletions {
-  #openai: OpenAI;
-  constructor(openai: OpenAI) {
-    this.#openai = openai;
+  #client: Client;
+  constructor(client: Client) {
+    this.#client = client;
   }
 
   create(params: InterfazeChatCompletionCreateParamsNonStreaming, options?: RequestOptions): APIPromise<InterfazeChatCompletion>;
@@ -92,23 +103,34 @@ export class InterfazeCompletions {
     options?: RequestOptions
   ): APIPromise<InterfazeChatCompletion> | APIPromise<Stream<ChatCompletionChunk>> {
     const { body, stripFence } = prepare(params);
-    const raw = this.#openai.chat.completions.create(body as never, options);
+    const raw = this.#client.chat.completions.create(body as never, options);
     if (params.stream) {
       return raw as unknown as APIPromise<Stream<ChatCompletionChunk>>;
     }
     return (raw as unknown as APIPromise<ChatCompletion>)._thenUnwrap((c) => toInterfaze(c, { stripFence }));
   }
 
+  /** Structured output: parses `message.content` against the schema and returns it on `message.parsed`. */
+  parse<T>(params: InterfazeChatCompletionParseParams<T>, options?: RequestOptions): APIPromise<ParsedChatCompletion<T>> {
+    const { guard, model, messages, ...rest } = params;
+    const body = {
+      ...rest,
+      model: model ?? INTERFAZE_MODEL,
+      messages: injectTags(messages as ChatCompletionMessageParam[], undefined, guard?.length ? guardTag(guard) : undefined),
+    };
+    return this.#client.chat.completions.parse<T>(body as never, options);
+  }
+
   /** Streaming with an Interfaze-tolerant accumulator; also surfaces `<think>`/`<precontext>`. */
   stream(params: Omit<InterfazeChatCompletionCreateParamsStreaming, "stream">, options?: RequestOptions): InterfazeChatCompletionStream {
     const { body, stripFence } = prepare({ ...params, stream: true } as InterfazeChatCompletionCreateParamsStreaming);
-    return new InterfazeChatCompletionStream(this.#openai, body, options, stripFence);
+    return new InterfazeChatCompletionStream(this.#client, body, options, stripFence);
   }
 }
 
 export class InterfazeChat {
   completions: InterfazeCompletions;
-  constructor(openai: OpenAI) {
-    this.completions = new InterfazeCompletions(openai);
+  constructor(client: Client) {
+    this.completions = new InterfazeCompletions(client);
   }
 }
