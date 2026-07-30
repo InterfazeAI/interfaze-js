@@ -11,7 +11,12 @@ export default defineConfig({
   splitting: false,
   noExternal: [/^openai(\/|$)/],
   external: ["zod"],
-  esbuildOptions(options) {
+  esbuildOptions(options, context) {
     options.sourcesContent = false;
+    if (context.format === "esm") {
+      options.banner = {
+        js: "import { createRequire as _cr } from 'module';\nconst require = _cr(import.meta.url);",
+      };
+    }
   },
 });

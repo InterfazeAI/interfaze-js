@@ -16,7 +16,6 @@ import _Client, {
   InternalServerError as _InternalServerError,
   toFile as _toFile,
 } from "openai";
-import { zodResponseFormat as _zodResponseFormat } from "openai/helpers/zod";
 
 interface Ctor<T> {
   new (...args: any[]): T;
@@ -431,11 +430,19 @@ export interface AutoParseableResponseFormat<T> extends ResponseFormatJSONSchema
   $parseRaw(content: string): T;
 }
 
-export const zodResponseFormat = _zodResponseFormat as unknown as <ZodInput extends ZodTypeLike>(
+type ZodResponseFormatFn = <ZodInput extends ZodTypeLike>(
   schema: ZodInput,
   name: string,
   props?: { description?: string }
 ) => AutoParseableResponseFormat<InferZodType<ZodInput>>;
+
+declare const require: (id: string) => { zodResponseFormat: ZodResponseFormatFn };
+let _zodResponseFormat: ZodResponseFormatFn | undefined;
+
+export const zodResponseFormat: ZodResponseFormatFn = (schema, name, props) => {
+  _zodResponseFormat ??= require("openai/helpers/zod").zodResponseFormat;
+  return _zodResponseFormat(schema, name, props);
+};
 
 export interface ParsedChatCompletionMessage<T> extends ChatCompletionMessage {
   parsed: T | null;
