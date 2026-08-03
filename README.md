@@ -336,7 +336,7 @@ Set router, cache, and streaming behavior once on the client:
 ```ts
 const interfaze = new Interfaze({
   showAdditionalInfo: true, // stream <precontext> deltas as they're produced
-  bypassMoA: true, // skip the mixture-of-agents router
+  bypassMoA: true, // skip the mixture-of-architecture router
   bypassCache: true, // skip the semantic cache
 });
 ```

@@ -9,7 +9,7 @@ import { Tasks } from "./tasks.js";
 export interface InterfazeOptions extends ClientOptions {
   /** Emit `<precontext>` deltas while streaming (`x-show-additional-info`). */
   showAdditionalInfo?: boolean;
-  /** Skip the mixture-of-agents tool router (`x-interfaze-bypass-moa`). */
+  /** Skip the mixture-of-architecture tool router (`x-interfaze-bypass-moa`). */
   bypassMoA?: boolean;
   /** Skip the semantic cache (`x-interfaze-bypass-cache`). */
   bypassCache?: boolean;

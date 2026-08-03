@@ -8,7 +8,7 @@ All notable changes to `interfaze` are documented here. The format follows
 
 ### Changed
 
-- **BREAKING:** renamed the `bypassMoe` client option to `bypassMoA` (its header is now `x-interfaze-bypass-moa`), matching the server's mixture-of-agents router. The `bypassCache` header also moved to `x-interfaze-bypass-cache`; `x-show-additional-info` and `x-admin-key` are unchanged. Consumers passing `bypassMoe` must rename it to `bypassMoA`.
+- **BREAKING:** renamed the `bypassMoe` client option to `bypassMoA` (its header is now `x-interfaze-bypass-moa`), matching the server's mixture-of-architectures router. The `bypassCache` header also moved to `x-interfaze-bypass-cache`; `x-show-additional-info` and `x-admin-key` are unchanged. Consumers passing `bypassMoe` must rename it to `bypassMoA`.
 
 ## [0.1.0] - 2026-07-16
 
