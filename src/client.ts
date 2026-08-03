@@ -9,9 +9,9 @@ import { Tasks } from "./tasks.js";
 export interface InterfazeOptions extends ClientOptions {
   /** Emit `<precontext>` deltas while streaming (`x-show-additional-info`). */
   showAdditionalInfo?: boolean;
-  /** Skip the mixture-of-experts tool router (`x-bypass-moe`). */
-  bypassMoe?: boolean;
-  /** Skip the semantic cache (`x-bypass-cache`). */
+  /** Skip the mixture-of-agents tool router (`x-interfaze-bypass-moa`). */
+  bypassMoA?: boolean;
+  /** Skip the semantic cache (`x-interfaze-bypass-cache`). */
   bypassCache?: boolean;
   /** Admin key that surfaces a `debug` field (`x-admin-key`). */
   adminKey?: string;
@@ -28,7 +28,7 @@ export class Interfaze {
   readonly tasks: Tasks;
 
   constructor(options: InterfazeOptions = {}) {
-    const { showAdditionalInfo, bypassMoe, bypassCache, adminKey, apiKey, baseURL, defaultHeaders, ...rest } = options;
+    const { showAdditionalInfo, bypassMoA, bypassCache, adminKey, apiKey, baseURL, defaultHeaders, ...rest } = options;
 
     const resolvedKey = apiKey ?? envKey();
     if (!resolvedKey) {
@@ -37,7 +37,7 @@ export class Interfaze {
 
     const headers: Record<string, string> = { ...(defaultHeaders as Record<string, string> | undefined) };
     if (showAdditionalInfo) headers[HEADERS.showAdditionalInfo] = "true";
-    if (bypassMoe) headers[HEADERS.bypassMoe] = "true";
+    if (bypassMoA) headers[HEADERS.bypassMoA] = "true";
     if (bypassCache) headers[HEADERS.bypassCache] = "true";
     if (adminKey) headers[HEADERS.adminKey] = adminKey;
 

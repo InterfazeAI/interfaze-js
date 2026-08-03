@@ -64,7 +64,7 @@ export const LIMITS = {
 /** Interfaze control-plane headers. */
 export const HEADERS = {
   showAdditionalInfo: "x-show-additional-info",
-  bypassMoe: "x-bypass-moe",
-  bypassCache: "x-bypass-cache",
+  bypassMoA: "x-interfaze-bypass-moa",
+  bypassCache: "x-interfaze-bypass-cache",
   adminKey: "x-admin-key",
 } as const;

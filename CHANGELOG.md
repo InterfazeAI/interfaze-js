@@ -4,6 +4,12 @@ All notable changes to `interfaze` are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- **BREAKING:** renamed the `bypassMoe` client option to `bypassMoA` (its header is now `x-interfaze-bypass-moa`), matching the server's mixture-of-agents router. The `bypassCache` header also moved to `x-interfaze-bypass-cache`; `x-show-additional-info` and `x-admin-key` are unchanged. Consumers passing `bypassMoe` must rename it to `bypassMoA`.
+
 ## [0.1.0] - 2026-07-16
 
 Initial release — a typed wrapper over the OpenAI SDK for the Interfaze API.

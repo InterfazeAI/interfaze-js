@@ -7,11 +7,6 @@ function textPart(text: string): ChatCompletionContentPart {
   return { type: "text", text };
 }
 
-/**
- * High-level task helpers. Each forces the relevant task and returns its raw `result`.
- * `source` is an https URL or a `data:` URI (build one with `inputs.dataUrl()`/`fromPath()`).
- * The final `options` arg is passed to the request (per-call headers, signal, timeout, …).
- */
 export class Tasks {
   #c: InterfazeCompletions;
   constructor(completions: InterfazeCompletions) {
@@ -65,7 +60,7 @@ export class Tasks {
     return this.#run("translate", `Translate the following into ${opts.to}:\n\n${text}`, options);
   }
 
-  /** Forecast a time series from a CSV (MoE-selected, so prompt-driven; reads the `forecast` precontext). */
+  /** Forecast a time series from a CSV (MoA-selected, so prompt-driven; reads the `forecast` precontext). */
   async forecast(csvSource: string, opts: { periods?: number; unit?: string } = {}, options?: RequestOptions): Promise<unknown> {
     const n = opts.periods ?? 10;
     const unit = opts.unit ?? "days";
