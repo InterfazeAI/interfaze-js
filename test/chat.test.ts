@@ -138,17 +138,17 @@ describe("request serialization", () => {
     expect(calls[0]!.headers.get(HEADERS.bypassCache)).toBe("true");
   });
 
-  it("maps every control option to its header, including bypassMoe and adminKey", async () => {
+  it("maps every control option to its header, including bypassMoA and adminKey", async () => {
     const { interfaze, calls } = mockInterfaze(() => jsonResponse(basic), {
       showAdditionalInfo: true,
-      bypassMoe: true,
+      bypassMoA: true,
       bypassCache: true,
       adminKey: "admin-secret",
     });
     await interfaze.chat.completions.create({ messages: [{ role: "user", content: "x" }] });
     const h = calls[0]!.headers;
     expect(h.get(HEADERS.showAdditionalInfo)).toBe("true");
-    expect(h.get(HEADERS.bypassMoe)).toBe("true");
+    expect(h.get(HEADERS.bypassMoA)).toBe("true");
     expect(h.get(HEADERS.bypassCache)).toBe("true");
     expect(h.get(HEADERS.adminKey)).toBe("admin-secret");
   });
@@ -158,7 +158,7 @@ describe("request serialization", () => {
     await interfaze.chat.completions.create({ messages: [{ role: "user", content: "x" }] });
     const h = calls[0]!.headers;
     expect(h.has(HEADERS.showAdditionalInfo)).toBe(false);
-    expect(h.has(HEADERS.bypassMoe)).toBe(false);
+    expect(h.has(HEADERS.bypassMoA)).toBe(false);
     expect(h.has(HEADERS.bypassCache)).toBe(false);
     expect(h.has(HEADERS.adminKey)).toBe(false);
   });

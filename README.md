@@ -336,10 +336,12 @@ Set router, cache, and streaming behavior once on the client:
 ```ts
 const interfaze = new Interfaze({
   showAdditionalInfo: true, // stream <precontext> deltas as they're produced
-  bypassMoe: true, // skip the mixture-of-experts router
+  bypassMoA: true, // skip the mixture-of-agents router
   bypassCache: true, // skip the semantic cache
 });
 ```
+
+> **Zero data retention (ZDR)** is configured at the account/infrastructure level, not via a per-request flag or client header - contact Interfaze to enable it for your account.
 
 ## Errors
 
