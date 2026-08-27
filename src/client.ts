@@ -6,6 +6,7 @@ import { DEFAULT_TIMEOUT_MS, HEADERS, INTERFAZE_BASE_URL } from "./constants.js"
 import { InterfazeError } from "./errors.js";
 import { Tasks } from "./tasks.js";
 
+/** Options for constructing an {@link Interfaze} client; extends the OpenAI `ClientOptions`. */
 export interface InterfazeOptions extends ClientOptions {
   /** Emit `<precontext>` deltas while streaming (`x-show-additional-info`). */
   showAdditionalInfo?: boolean;
@@ -21,6 +22,7 @@ function envKey(): string | undefined {
   return typeof process !== "undefined" && process.env ? process.env["INTERFAZE_API_KEY"] : undefined;
 }
 
+/** Interfaze API client — an OpenAI-compatible client wired to the Interfaze endpoint. */
 export class Interfaze {
   readonly openai: OpenAI;
   readonly chat: InterfazeChat;

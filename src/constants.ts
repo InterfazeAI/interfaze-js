@@ -1,5 +1,8 @@
+/** Default Interfaze API base URL. */
 export const INTERFAZE_BASE_URL = "https://api.interfaze.ai/v1";
+/** Default model id. */
 export const INTERFAZE_MODEL = "interfaze-beta";
+/** Default request timeout, in milliseconds. */
 export const DEFAULT_TIMEOUT_MS = 900_000;
 
 /** Task names accepted in a `<task>…</task>` tag. */

@@ -10,6 +10,7 @@ function textPart(text: string): ChatCompletionContentPart {
   return { type: "text", text };
 }
 
+/** One-shot helpers for Interfaze's built-in tasks (OCR, detection, transcription, search, …). */
 export class Tasks {
   #c: InterfazeCompletions;
   constructor(completions: InterfazeCompletions) {

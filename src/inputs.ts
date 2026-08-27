@@ -2,6 +2,7 @@ import type { ChatCompletionContentPart } from "openai/resources/chat/completion
 import { BLACKLISTED_FORMATS } from "./constants.js";
 import { InterfazeError } from "./errors.js";
 
+/** Binary input accepted by the content-part builders. */
 export type BytesLike = Uint8Array | ArrayBuffer | Blob;
 
 const EXT_MIME: Record<string, string> = {
