@@ -18,9 +18,9 @@ import { InterfazeChatCompletionStream, stripJsonFence } from "./stream.js";
 import type {
   GuardCode,
   InterfazeChatCompletion,
-  InterfazeChatCompletionCreateParams,
   InterfazeChatCompletionCreateParamsNonStreaming,
   InterfazeChatCompletionCreateParamsStreaming,
+  InterfazeChatCompletionCreateParams,
 } from "./types.js";
 
 export function toInterfaze(raw: ChatCompletion, opts: { stripFence: boolean }): InterfazeChatCompletion {

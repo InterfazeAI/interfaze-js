@@ -326,26 +326,41 @@ export interface ChatCompletionStreamOptions {
 interface ChatCompletionCreateParamsBase {
   messages: Array<ChatCompletionMessageParam>;
   model: string;
-  temperature?: number | null;
-  top_p?: number | null;
-  max_tokens?: number | null;
-  max_completion_tokens?: number | null;
-  n?: number | null;
-  stop?: string | null | Array<string>;
-  stream?: boolean | null;
-  stream_options?: ChatCompletionStreamOptions | null;
-  presence_penalty?: number | null;
+  audio?: unknown | null;
   frequency_penalty?: number | null;
+  function_call?: "none" | "auto" | { name: string };
+  functions?: Array<FunctionDefinition>;
   logit_bias?: Record<string, number> | null;
   logprobs?: boolean | null;
-  top_logprobs?: number | null;
-  seed?: number | null;
-  tools?: Array<ChatCompletionTool>;
-  tool_choice?: ChatCompletionToolChoiceOption;
-  response_format?: ResponseFormat;
-  reasoning_effort?: ReasoningEffort;
-  user?: string;
+  max_completion_tokens?: number | null;
+  max_tokens?: number | null;
   metadata?: Metadata | null;
+  modalities?: Array<"text" | "audio"> | null;
+  moderation?: unknown | null;
+  n?: number | null;
+  parallel_tool_calls?: boolean;
+  prediction?: unknown | null;
+  presence_penalty?: number | null;
+  prompt_cache_key?: string;
+  prompt_cache_options?: unknown;
+  prompt_cache_retention?: "in_memory" | "24h" | null;
+  reasoning_effort?: ReasoningEffort;
+  response_format?: ResponseFormat;
+  safety_identifier?: string;
+  seed?: number | null;
+  service_tier?: "auto" | "default" | "flex" | "scale" | "priority" | null;
+  stop?: string | null | Array<string>;
+  store?: boolean | null;
+  stream?: boolean | null;
+  stream_options?: ChatCompletionStreamOptions | null;
+  temperature?: number | null;
+  tool_choice?: ChatCompletionToolChoiceOption;
+  tools?: Array<ChatCompletionTool>;
+  top_logprobs?: number | null;
+  top_p?: number | null;
+  user?: string;
+  verbosity?: "low" | "medium" | "high" | null;
+  web_search_options?: unknown;
 }
 
 export interface ChatCompletionCreateParamsNonStreaming extends ChatCompletionCreateParamsBase {
@@ -381,15 +396,33 @@ export interface RequestOptions {
   idempotencyKey?: string;
 }
 
+export type LogLevel = "off" | "error" | "warn" | "info" | "debug";
+
+export interface Logger {
+  error: (...args: unknown[]) => void;
+  warn: (...args: unknown[]) => void;
+  info: (...args: unknown[]) => void;
+  debug: (...args: unknown[]) => void;
+}
+
 export interface ClientOptions {
-  apiKey?: string;
+  apiKey?: string | null;
+  adminAPIKey?: string | null;
+  organization?: string | null;
+  project?: string | null;
+  webhookSecret?: string | null;
   baseURL?: string | null;
   timeout?: number;
-  maxRetries?: number;
+  fetchOptions?: RequestInit;
   fetch?: (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
+  maxRetries?: number;
   defaultHeaders?: Headers | Record<string, string | null | undefined>;
   defaultQuery?: Record<string, string | undefined>;
   dangerouslyAllowBrowser?: boolean;
+  logLevel?: LogLevel;
+  logger?: Logger;
+  workloadIdentity?: unknown;
+  provider?: unknown;
 }
 
 // Client
