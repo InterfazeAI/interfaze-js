@@ -11,8 +11,9 @@ function loadKey(): string {
 const client = new Interfaze({ apiKey: loadKey(), showAdditionalInfo: true, timeout: 280_000 });
 
 const ASSETS = {
-  receipt: "https://jigsawstack.com/preview/vocr-example.jpg",
-  audio: "https://jigsawstack.com/preview/stt-example.wav",
+  receipt: "https://r2public.jigsawstack.com/interfaze/examples/receipt.jpeg",
+  id: "https://r2public.jigsawstack.com/interfaze/examples/id.jpg",
+  audio: "https://r2public.jigsawstack.com/interfaze/examples/stt-example.wav",
   video: "https://download.samplelib.com/mp4/sample-5s.mp4",
   csv: "https://r2public.jigsawstack.com/interfaze/examples/prediction-example.csv",
   pdf: "https://arxiv.org/pdf/1706.03762",
@@ -37,7 +38,7 @@ const preview = (v: unknown) => JSON.stringify(v).slice(0, 60);
 // ── core ────────────────────────────────────────────────────────────────────
 await check("text generation", async () => {
   const r = await client.chat.completions.create({
-    messages: [{ role: "user", content: "Say hi in one short sentence." }],
+    messages: [{ role: "user", content: "Summarize what Interfaze does in one short sentence." }],
     max_tokens: 60,
   });
   assert((r.choices[0]?.message.content ?? "").length > 0, "empty");
@@ -47,18 +48,28 @@ await check("text generation", async () => {
 
 await check("structured output (responseFormat)", async () => {
   const r = await client.chat.completions.create({
-    messages: [{ role: "user", content: "Give a greeting and the number 3." }],
+    messages: [
+      {
+        role: "user",
+        content: [{ type: "text", text: "Extract the details from this ID." }, inputs.image(ASSETS.id)],
+      },
+    ],
     response_format: responseFormat(
       {
         type: "object",
-        properties: { greeting: { type: "string" }, count: { type: "number" } },
-        required: ["greeting", "count"],
+        properties: {
+          first_name: { type: "string" },
+          last_name: { type: "string" },
+          dob: { type: "string", description: "Date of birth on the ID" },
+          licence_number: { type: "string" },
+        },
+        required: ["first_name", "last_name", "dob", "licence_number"],
       },
-      "greeting"
+      "id_card"
     ),
   });
   const p = JSON.parse(r.choices[0]!.message.content!);
-  assert(typeof p.greeting === "string" && typeof p.count === "number", "fields missing");
+  assert(typeof p.first_name === "string" && typeof p.licence_number === "string", "fields missing");
   return preview(p);
 });
 
@@ -93,7 +104,9 @@ await check("tools -> tool_calls + content null", async () => {
 });
 
 await check("streaming (stream helper, role-less tolerant)", async () => {
-  const s = client.chat.completions.stream({ messages: [{ role: "user", content: "Count 1 to 5." }] });
+  const s = client.chat.completions.stream({
+    messages: [{ role: "user", content: "List five best practices for handling file uploads in an API." }],
+  });
   let n = 0;
   for await (const _ of s) n++;
   const final = await s.finalChatCompletion();
@@ -104,7 +117,7 @@ await check("streaming (stream helper, role-less tolerant)", async () => {
 await check("reasoning (reasoning_effort high)", async () => {
   const s = client.chat.completions.stream({
     reasoning_effort: "high",
-    messages: [{ role: "user", content: "Why is the sky blue? Briefly." }],
+    messages: [{ role: "user", content: "Explain briefly why exponential backoff helps when retrying rate-limited API requests." }],
   });
   for await (const _ of s) {
     /* drain */
@@ -117,7 +130,7 @@ await check("reasoning (reasoning_effort high)", async () => {
 await check("reasoning_effort widened value 'on'", async () => {
   const r = await client.chat.completions.create({
     reasoning_effort: "on",
-    messages: [{ role: "user", content: "Hello" }],
+    messages: [{ role: "user", content: "Give one tip for reducing latency in an API integration." }],
   });
   assert((r.choices[0]?.message.content ?? "").length > 0, "empty");
   return "accepted";
@@ -162,7 +175,7 @@ await check("tasks.transcribe", async () => {
   return preview(r);
 });
 await check("tasks.forecast", async () => {
-  const r = await client.tasks.forecast(ASSETS.csv, { periods: 5 });
+  const r = await client.tasks.forecast(ASSETS.csv, { periods: 5 }, { timeout: 450_000 });
   assert(r, "empty");
   return preview(r);
 });
