@@ -109,10 +109,10 @@ const final = await stream.finalChatCompletion(); // .precontext (the sources), 
 
 ### Structured output
 
-`responseFormat()` takes a JSON Schema - or a zod schema via `z.toJSONSchema()` - and normalizes it for Interfaze:
+`parse()` sends a zod schema, validates the reply against it, and returns a typed object on `message.parsed` - no manual `JSON.parse`:
 
 ```ts
-import { responseFormat, inputs } from "interfaze";
+import { inputs, zodResponseFormat } from "interfaze";
 import { z } from "zod";
 
 const Receipt = z.object({
@@ -121,22 +121,32 @@ const Receipt = z.object({
   items: z.array(z.object({ name: z.string(), price: z.number() })),
 });
 
-const res = await interfaze.chat.completions.create({
+const res = await interfaze.chat.completions.parse({
   messages: [
     {
       role: "user",
       content: [{ type: "text", text: "Extract this receipt." }, inputs.image("https://jigsawstack.com/preview/vocr-example.jpg")],
     },
   ],
-  response_format: responseFormat(z.toJSONSchema(Receipt), "receipt"),
+  response_format: zodResponseFormat(Receipt, "receipt"),
 });
 
-const receipt = JSON.parse(res.choices[0]?.message.content ?? "{}"); // { merchant, total, items: [...] }
+const receipt = res.choices[0]?.message.parsed; // typed `Receipt | null`
 ```
 
-Prefer a plain schema?
-Pass one directly:
-`responseFormat({ type: "object", properties: { … }, required: [ … ] })`. `message.content` comes back as a JSON string, so parse it - and keep the root an `object`, since a non-object root is wrapped under a `result` key.
+Prefer a raw JSON Schema (or no zod)? Use `create` with `responseFormat()` and read `message.content` yourself:
+
+```ts
+import { responseFormat } from "interfaze";
+
+const res = await interfaze.chat.completions.create({
+  messages: [{ role: "user", content: "..." }],
+  response_format: responseFormat({ type: "object", properties: {}, required: [] }),
+});
+const data = JSON.parse(res.choices[0]?.message.content ?? "{}");
+```
+
+`responseFormat()` also accepts a zod schema via `z.toJSONSchema()`. `message.content` is a JSON string, and a non-object root is wrapped under a `result` key.
 
 ### Tools and function calling
 
@@ -352,6 +362,8 @@ import { BadRequestError, InterfazeError, RateLimitError } from "interfaze";
 ```
 
 `InterfazeError` is client-side (missing key, invalid guard code, stream misuse). Everything else is an `APIError` subclass carrying `status` and `code` - `BadRequestError` (400), `AuthenticationError` (401), `RateLimitError` (429), and so on.
+
+> **Import error classes, types, and `toFile` from `interfaze` itself.** It re-exports everything you need, and these are the exact classes the SDK throws, so `instanceof` matches. If you also use another SDK that exports the same class names, those are a separate copy - `instanceof` won't match across the two, so compare on `err.status` / `err.code` to bridge them.
 
 ## Capabilities
 

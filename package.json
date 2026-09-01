@@ -57,11 +57,9 @@
     "prepare": "tsup",
     "prepublishOnly": "npm run build"
   },
-  "dependencies": {
-    "openai": "~6.47.0"
-  },
+  "dependencies": {},
   "peerDependencies": {
-    "zod": "^3.23.0 || ^4.4.3"
+    "zod": "^3.25 || ^4.0"
   },
   "peerDependenciesMeta": {
     "zod": {
@@ -72,7 +70,7 @@
     "@arethetypeswrong/cli": "0.18.5",
     "@types/node": "~22.20.1",
     "@vitest/coverage-v8": "^2.1.9",
-    "openai": "~6.47.0",
+    "openai": "6.47.0",
     "prettier": "^3.9.6",
     "publint": "0.3.22",
     "tsup": "^8.5.1",

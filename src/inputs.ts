@@ -1,4 +1,4 @@
-import type { ChatCompletionContentPart } from "openai/resources/chat/completions/completions";
+import type { ChatCompletionContentPart } from "./_compat.js";
 import { BLACKLISTED_FORMATS } from "./constants.js";
 import { InterfazeError } from "./errors.js";
 
@@ -106,7 +106,7 @@ export function audio(src: string, opts: { format?: string } = {}): ChatCompleti
   return { type: "input_audio", input_audio: { data: src, format } } as unknown as ChatCompletionContentPart;
 }
 
-/** Video part — rides on the `file` part (the OpenAI SDK has no video part). */
+/** Video part — rides on the `file` part (there's no dedicated video content part). */
 export function video(src: string, opts: { filename?: string } = {}): ChatCompletionContentPart {
   return file(src, opts);
 }

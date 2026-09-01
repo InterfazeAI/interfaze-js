@@ -1,5 +1,5 @@
-import OpenAI from "openai";
-import type { ClientOptions } from "openai";
+import type { ClientOptions } from "./_compat.js";
+import { Client } from "./_compat.js";
 
 import { InterfazeChat } from "./chat.js";
 import { DEFAULT_TIMEOUT_MS, HEADERS, INTERFAZE_BASE_URL } from "./constants.js";
@@ -22,9 +22,9 @@ function envKey(): string | undefined {
 }
 
 export class Interfaze {
-  readonly openai: OpenAI;
+  readonly openai: Client;
   readonly chat: InterfazeChat;
-  readonly models: OpenAI["models"];
+  readonly models: Client["models"];
   readonly tasks: Tasks;
 
   constructor(options: InterfazeOptions = {}) {
@@ -41,7 +41,7 @@ export class Interfaze {
     if (bypassCache) headers[HEADERS.bypassCache] = "true";
     if (adminKey) headers[HEADERS.adminKey] = adminKey;
 
-    this.openai = new OpenAI({
+    this.openai = new Client({
       ...rest,
       apiKey: resolvedKey,
       baseURL: baseURL ?? INTERFAZE_BASE_URL,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { toInterfaze } from "../src/chat.js";
 import { HEADERS } from "../src/constants.js";
-import type { ChatCompletion, ChatCompletionChunk, ChatCompletionMessageToolCall } from "openai/resources/chat/completions/completions";
+import type { ChatCompletion, ChatCompletionChunk, ChatCompletionMessageToolCall } from "../src/_compat.js";
 import { completion, fixture, jsonResponse, mockInterfaze, sseResponse, systemContent } from "./helpers.js";
 
 function functionName(call: ChatCompletionMessageToolCall): string {

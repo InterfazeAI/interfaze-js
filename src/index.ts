@@ -4,6 +4,8 @@ export type { InterfazeOptions } from "./client.js";
 export { InterfazeError } from "./errors.js";
 export { InterfazeChatCompletionStream } from "./stream.js";
 export { responseFormat, emptyTaskSchema } from "./schema.js";
+export { zodResponseFormat } from "./_compat.js";
+export type { InterfazeChatCompletionParseParams } from "./chat.js";
 
 /** Content-part + input builders (`inputs.image/file/audio/video/dataUrl/fromPath/autoPart`). */
 export * as inputs from "./inputs.js";
@@ -21,7 +23,7 @@ export type {
 
 export { TASK_NAMES, GUARD_CODES, GUARD_LABELS, INTERFAZE_MODEL, INTERFAZE_BASE_URL, LIMITS } from "./constants.js";
 
-export { toFile } from "openai";
+export { toFile } from "./_compat.js";
 export {
   OpenAIError,
   APIError,
@@ -36,11 +38,13 @@ export {
   InternalServerError,
   PermissionDeniedError,
   UnprocessableEntityError,
-} from "openai";
+} from "./_compat.js";
 export type {
+  AutoParseableResponseFormat,
   ChatCompletionMessageParam,
   ChatCompletionTool,
   ChatCompletionChunk,
   ChatCompletionMessage,
   ChatCompletionContentPart,
-} from "openai/resources/chat/completions/completions";
+  ParsedChatCompletion,
+} from "./_compat.js";
