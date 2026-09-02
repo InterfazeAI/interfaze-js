@@ -41,4 +41,4 @@ jobs:
           node-version: "22.x"
       - run: npm ci
       - name: Publish to JSR
-        run: npx jsr publish --allow-slow-types
+        run: npx jsr publish

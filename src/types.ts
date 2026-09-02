@@ -5,7 +5,9 @@ import type {
 } from "openai/resources/chat/completions/completions";
 import type { TASK_NAMES, GUARD_CODES } from "./constants.js";
 
+/** Name of a built-in Interfaze task. */
 export type TaskName = (typeof TASK_NAMES)[number];
+/** Guardrail category code. */
 export type GuardCode = (typeof GUARD_CODES)[number];
 
 /** Wider than the OpenAI enum — Interfaze also accepts `on`/`off`/`auto`. */
@@ -39,10 +41,13 @@ interface InterfazeExtraParams {
   guard?: GuardCode[];
 }
 
+/** Non-streaming chat-completion params, with Interfaze extensions. */
 export type InterfazeChatCompletionCreateParamsNonStreaming = Omit<ChatCompletionCreateParamsNonStreaming, "reasoning_effort" | "model"> &
   InterfazeExtraParams & { stream?: false | null };
 
+/** Streaming chat-completion params, with Interfaze extensions. */
 export type InterfazeChatCompletionCreateParamsStreaming = Omit<ChatCompletionCreateParamsStreaming, "reasoning_effort" | "model"> &
   InterfazeExtraParams & { stream: true };
 
+/** Chat-completion params — streaming or non-streaming. */
 export type InterfazeChatCompletionCreateParams = InterfazeChatCompletionCreateParamsNonStreaming | InterfazeChatCompletionCreateParamsStreaming;

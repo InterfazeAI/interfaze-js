@@ -17,6 +17,7 @@ import type {
 
 type RequestOptions = OpenAI.RequestOptions;
 
+/** Normalize a raw OpenAI completion into an {@link InterfazeChatCompletion}. */
 export function toInterfaze(raw: ChatCompletion, opts: { stripFence: boolean }): InterfazeChatCompletion {
   const r = raw as InterfazeChatCompletion;
   r.vcache = (raw as { vcache?: boolean }).vcache ?? false;
@@ -79,6 +80,7 @@ function prepare(params: InterfazeChatCompletionCreateParams): {
   return { body, stripFence: (rf as { type?: string })?.type === "json_object" };
 }
 
+/** Chat-completions resource: `create` (streaming or non-streaming) plus the `stream` helper. */
 export class InterfazeCompletions {
   #openai: OpenAI;
   constructor(openai: OpenAI) {
@@ -106,6 +108,7 @@ export class InterfazeCompletions {
   }
 }
 
+/** Chat namespace exposing `completions`. */
 export class InterfazeChat {
   completions: InterfazeCompletions;
   constructor(openai: OpenAI) {
