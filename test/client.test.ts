@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { Interfaze, InterfazeError } from "../src/index.js";
+import { Interfaze, InterfazeError, type InterfazeOptions } from "../src/index.js";
+import { completion, jsonResponse, mockInterfaze } from "./helpers.js";
 
 describe("client construction", () => {
   const saved = process.env["INTERFAZE_API_KEY"];
@@ -52,5 +53,22 @@ describe("client construction", () => {
   it("respects an explicit timeout", () => {
     const i = new Interfaze({ apiKey: "sk-test", timeout: 30_000 });
     expect((i.openai as unknown as { timeout: number }).timeout).toBe(30_000);
+  });
+});
+
+describe("defaultHeaders", () => {
+  it.each([
+    ["a plain object", { "x-trace": "abc" }],
+    ["a Headers instance", new Headers({ "x-trace": "abc" })],
+    ["an array of tuples", [["x-trace", "abc"]]],
+  ])("forwards headers given as %s", async (_label, defaultHeaders) => {
+    const { interfaze, calls } = mockInterfaze(() => jsonResponse(completion()), {
+      defaultHeaders: defaultHeaders as InterfazeOptions["defaultHeaders"],
+      bypassCache: true,
+    });
+    await interfaze.chat.completions.create({ messages: [{ role: "user", content: "hi" }] });
+
+    expect(calls[0]!.headers.get("x-trace")).toBe("abc");
+    expect(calls[0]!.headers.get("x-interfaze-bypass-cache")).toBe("true");
   });
 });
