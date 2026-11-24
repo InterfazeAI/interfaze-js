@@ -1,9 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   APIError,
   AuthenticationError,
   BadRequestError,
-  Interfaze,
   InterfazeError,
   InternalServerError,
   NotFoundError,
@@ -130,22 +129,6 @@ describe("malformed base64 / data URL handling", () => {
       type: "image_url",
       image_url: { url: "data:image/png;base64,%%%not-base64%%%" },
     });
-  });
-});
-
-describe("missing API key", () => {
-  const saved = process.env["INTERFAZE_API_KEY"];
-  beforeEach(() => {
-    delete process.env["INTERFAZE_API_KEY"];
-  });
-  afterEach(() => {
-    if (saved === undefined) delete process.env["INTERFAZE_API_KEY"];
-    else process.env["INTERFAZE_API_KEY"] = saved;
-  });
-
-  it("throws InterfazeError naming the environment variable", () => {
-    expect(() => new Interfaze({})).toThrow(InterfazeError);
-    expect(() => new Interfaze({})).toThrow(/INTERFAZE_API_KEY/);
   });
 });
 

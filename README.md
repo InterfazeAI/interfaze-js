@@ -19,6 +19,8 @@ import { Interfaze } from "interfaze";
 const interfaze = new Interfaze({ apiKey: "sk_..." }); // or set INTERFAZE_API_KEY and call new Interfaze()
 ```
 
+In server-side code, you can also call `new Interfaze()` with no key. The client then sends requests without an `Authorization` header, and Interfaze limits the number of keyless calls from each IP address. When you reach the limit, the API returns a `RateLimitError` (429) that tells you how to get an API key. Keyless calls need a release of `interfaze` later than 1.0.4.
+
 ## Your first request
 
 This guide will get you started with your first request to Interfaze, which follows the Chat Completions API standard.
@@ -351,7 +353,7 @@ Interfaze re-exports typed error classes to catch and narrow on:
 import { BadRequestError, InterfazeError, RateLimitError } from "interfaze";
 ```
 
-`InterfazeError` is client-side (missing key, invalid guard code, stream misuse). Everything else is an `APIError` subclass carrying `status` and `code` - `BadRequestError` (400), `AuthenticationError` (401), `RateLimitError` (429), and so on.
+`InterfazeError` is client-side (invalid guard code, stream misuse). Everything else is an `APIError` subclass carrying `status` and `code` - `BadRequestError` (400), `AuthenticationError` (401), `RateLimitError` (429), and so on.
 
 ## Capabilities
 

@@ -8,6 +8,8 @@ export INTERFAZE_API_KEY="sk_..."
 npx tsx examples/quickstart.ts
 ```
 
+With a release of `interfaze` later than 1.0.4, you can leave out the `export` line and run the examples keyless.
+
 - `quickstart.ts` — first request
 - `tasks.ts` — task helpers (ocr, webSearch, forecast, translate, …)
 - `streaming.ts` — streaming + reasoning + precontext

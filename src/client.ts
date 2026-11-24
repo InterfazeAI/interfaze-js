@@ -3,7 +3,6 @@ import type { ClientOptions } from "openai";
 
 import { InterfazeChat } from "./chat.js";
 import { DEFAULT_TIMEOUT_MS, HEADERS, INTERFAZE_BASE_URL } from "./constants.js";
-import { InterfazeError } from "./errors.js";
 import { Tasks } from "./tasks.js";
 
 /** Options for constructing an {@link Interfaze} client; extends the OpenAI `ClientOptions`. */
@@ -37,6 +36,13 @@ function envKey(): string | undefined {
   return typeof process !== "undefined" && process.env ? process.env["INTERFAZE_API_KEY"] : undefined;
 }
 
+/**
+ * The openai client refuses to construct without a credential, and otherwise reads OPENAI_API_KEY.
+ * A client with no key passes this stand-in together with a null `Authorization` default header,
+ * which tells the openai client to omit the header, so the stand-in never leaves the process.
+ */
+const KEYLESS_STAND_IN_KEY = "interfaze-keyless";
+
 /** Interfaze API client — an OpenAI-compatible client wired to the Interfaze endpoint. */
 export class Interfaze {
   readonly openai: OpenAI;
@@ -47,12 +53,10 @@ export class Interfaze {
   constructor(options: InterfazeOptions = {}) {
     const { showAdditionalInfo, bypassMoA, bypassCache, adminKey, apiKey, baseURL, defaultHeaders, ...rest } = options;
 
-    const resolvedKey = apiKey ?? envKey();
-    if (!resolvedKey) {
-      throw new InterfazeError("Missing API key. Pass `new Interfaze({ apiKey })` or set the INTERFAZE_API_KEY environment variable.");
-    }
+    const resolvedKey = apiKey || envKey();
+    const keylessHeaders = resolvedKey ? {} : { Authorization: null };
 
-    const headers = headerRecord(defaultHeaders) as Record<string, string | null>;
+    const headers = { ...keylessHeaders, ...headerRecord(defaultHeaders) } as Record<string, string | null>;
     if (showAdditionalInfo) headers[HEADERS.showAdditionalInfo] = "true";
     if (bypassMoA) headers[HEADERS.bypassMoA] = "true";
     if (bypassCache) headers[HEADERS.bypassCache] = "true";
@@ -60,7 +64,7 @@ export class Interfaze {
 
     this.openai = new OpenAI({
       ...rest,
-      apiKey: resolvedKey,
+      apiKey: resolvedKey || KEYLESS_STAND_IN_KEY,
       baseURL: baseURL ?? INTERFAZE_BASE_URL,
       defaultHeaders: headers,
       timeout: rest.timeout ?? DEFAULT_TIMEOUT_MS,

@@ -8,7 +8,7 @@ try {
   });
   console.log(res.choices[0]?.message.content);
 } catch (err) {
-  // `InterfazeError` is client-side (missing key, invalid guard code, stream misuse).
+  // `InterfazeError` is client-side (invalid guard code, stream misuse).
   // Everything else is an APIError subclass carrying `status` and `code`.
   if (err instanceof RateLimitError) {
     console.error("rate limited (429) - back off and retry:", err.message);

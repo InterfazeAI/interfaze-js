@@ -6,6 +6,10 @@ All notable changes to `interfaze` are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Keyless access: with no `apiKey` and no `INTERFAZE_API_KEY`, `new Interfaze()` constructs and sends requests without an `Authorization` header, instead of throwing `InterfazeError`. It never falls back to `OPENAI_API_KEY`. An explicit `apiKey` still takes precedence over `INTERFAZE_API_KEY`, and an empty string counts as no key. A `401` for a bad key surfaces as `AuthenticationError` with no keyless retry. The openai browser guard (`dangerouslyAllowBrowser`) still applies.
+
 ### Changed
 
 - **BREAKING:** renamed the `bypassMoe` client option to `bypassMoA` (its header is now `x-interfaze-bypass-moa`), matching the server's mixture-of-architectures router. The `bypassCache` header also moved to `x-interfaze-bypass-cache`; `x-show-additional-info` and `x-admin-key` are unchanged. Consumers passing `bypassMoe` must rename it to `bypassMoA`.

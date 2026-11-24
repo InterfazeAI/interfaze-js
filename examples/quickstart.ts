@@ -1,6 +1,6 @@
 import { Interfaze } from "interfaze";
 
-const interfaze = new Interfaze(); // reads INTERFAZE_API_KEY
+const interfaze = new Interfaze(); // reads INTERFAZE_API_KEY, and calls keyless when it is unset
 
 const res = await interfaze.chat.completions.create({
   messages: [{ role: "user", content: "Write a haiku about deterministic AI." }],
