@@ -56,6 +56,9 @@ function isDailyLimitBody(value: unknown): boolean {
   return isRecord(value) && isRecord(value["error"]) && value["error"]["code"] === DAILY_LIMIT_CODE;
 }
 
+/** An `Authorization` line of `OPENAI_CUSTOM_HEADERS`, as the openai client reads it. */
+const AUTHORIZATION_LINE = /^\s*authorization\s*:(.*)$/i;
+
 function isAuthorizationName(name: string): boolean {
   return name.trim().toLowerCase() === "authorization";
 }
@@ -70,10 +73,7 @@ function hasAuthorization(headers: Record<string, unknown>): boolean {
  * line overrides the key. This returns the value of that line, so the fetch wrapper can replace it.
  */
 function envAuthorization(): string | undefined {
-  const values = (envVar("OPENAI_CUSTOM_HEADERS") ?? "")
-    .split("\n")
-    .filter((line) => line.includes(":") && isAuthorizationName(line.slice(0, line.indexOf(":"))))
-    .map((line) => line.slice(line.indexOf(":") + 1).trim());
+  const values = (envVar("OPENAI_CUSTOM_HEADERS") ?? "").split("\n").flatMap((line) => AUTHORIZATION_LINE.exec(line)?.[1]?.trim() ?? []);
   return values[values.length - 1];
 }
 
