@@ -52,11 +52,58 @@ export function jsonResponse(data: unknown): Response {
   });
 }
 
-export function errorResponse(status: number, error: unknown): Response {
+export function errorResponse(status: number, error: unknown, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify({ error }), {
     status,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...headers },
   });
+}
+
+const REQUEST_ID = "req_test_0001";
+const DAILY_LIMIT = "1000";
+const INFLIGHT_LIMIT = "5";
+const SECONDS_PER_HOUR = 3600;
+const DAILY_RETRY_AFTER = String(SECONDS_PER_HOUR);
+const INFLIGHT_RETRY_AFTER = "5";
+
+/** Signup hint that every keyless 429 message ends with. */
+export const SIGNUP_HINT = "Get a free API key at https://interfaze.ai and send it as `Authorization: Bearer YOUR_API_KEY`.";
+
+/** Real Interfaze error body shape: `message`, `type`, `code` and `request_id`. */
+export function apiError(message: string, type: string, code: string): Record<string, string> {
+  return { message, type, code, request_id: REQUEST_ID };
+}
+
+/** Real 401 body for a key the API rejects. */
+export const UNAUTHORIZED_BODY = apiError("The API key provided is not valid", "permission_error", "insufficient_quota");
+
+/** Real keyless daily-limit 429 body. */
+export const DAILY_LIMIT_BODY = apiError(
+  `Keyless daily limit of ${DAILY_LIMIT} requests reached. ${SIGNUP_HINT}`,
+  "rate_limit_error",
+  "keyless_daily_limit_exceeded"
+);
+
+/** Real keyless in-flight 429 body. */
+export const INFLIGHT_BODY = apiError(
+  `Too many keyless requests in progress (limit ${INFLIGHT_LIMIT}). ${SIGNUP_HINT}`,
+  "rate_limit_error",
+  "keyless_inflight_limit_exceeded"
+);
+
+/** Real keyless daily-limit 429 response, with the headers the API sends. */
+export function dailyLimitResponse(): Response {
+  return errorResponse(429, DAILY_LIMIT_BODY, {
+    "retry-after": DAILY_RETRY_AFTER,
+    "x-ratelimit-limit": DAILY_LIMIT,
+    "x-ratelimit-remaining": "0",
+    "x-ratelimit-reset": String(Math.floor(Date.now() / 1000) + SECONDS_PER_HOUR),
+  });
+}
+
+/** Real keyless in-flight 429 response. `retryAfter` overrides the real value of 5 seconds to keep tests fast. */
+export function inflightResponse(retryAfter: string = INFLIGHT_RETRY_AFTER): Response {
+  return errorResponse(429, INFLIGHT_BODY, { "retry-after": retryAfter });
 }
 
 /** Replay captured chunk objects as an OpenAI-style SSE stream. */
