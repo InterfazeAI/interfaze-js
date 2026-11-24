@@ -6,6 +6,7 @@ const MESSAGES = [{ role: "user" as const, content: "hi" }];
 const ENV_KEY = "sk-env-synthetic";
 const EXPLICIT_KEY = "sk-explicit-synthetic";
 const OPENAI_KEY = "sk-openai-synthetic";
+const WHITESPACE_KEY = " \n";
 const DEFAULT_MAX_RETRIES = 2;
 
 describe("credentials", () => {
@@ -53,6 +54,8 @@ describe("credentials", () => {
 
   it.each([
     ["an empty explicit key", { apiKey: "" }, undefined],
+    ["a whitespace-only explicit key", { apiKey: WHITESPACE_KEY }, undefined],
+    ["a whitespace-only INTERFAZE_API_KEY", { apiKey: undefined }, WHITESPACE_KEY],
     ["an empty INTERFAZE_API_KEY", { apiKey: undefined }, ""],
   ])("treats %s as no key", async (_label, options, envValue) => {
     vi.stubEnv("INTERFAZE_API_KEY", envValue);
@@ -65,6 +68,7 @@ describe("credentials", () => {
   it.each([
     ["missing", undefined],
     ["empty", ""],
+    ["whitespace-only", WHITESPACE_KEY],
   ])("sends INTERFAZE_API_KEY as a bearer token when the explicit key is %s", async (_label, apiKey) => {
     vi.stubEnv("INTERFAZE_API_KEY", ENV_KEY);
     vi.stubEnv("OPENAI_API_KEY", OPENAI_KEY);

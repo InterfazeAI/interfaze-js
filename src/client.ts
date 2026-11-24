@@ -33,7 +33,7 @@ function headerRecord(given: ClientOptions["defaultHeaders"]): Record<string, un
 }
 
 function envKey(): string | undefined {
-  return typeof process !== "undefined" && process.env ? process.env["INTERFAZE_API_KEY"] : undefined;
+  return typeof process !== "undefined" && process.env ? process.env["INTERFAZE_API_KEY"]?.trim() : undefined;
 }
 
 /**
@@ -53,7 +53,8 @@ export class Interfaze {
   constructor(options: InterfazeOptions = {}) {
     const { showAdditionalInfo, bypassMoA, bypassCache, adminKey, apiKey, baseURL, defaultHeaders, ...rest } = options;
 
-    const resolvedKey = apiKey || envKey();
+    const explicitKey = typeof apiKey === "string" ? apiKey.trim() : apiKey;
+    const resolvedKey = explicitKey || envKey();
     const keylessHeaders = resolvedKey ? {} : { Authorization: null };
 
     const headers = { ...keylessHeaders, ...headerRecord(defaultHeaders) } as Record<string, string | null>;

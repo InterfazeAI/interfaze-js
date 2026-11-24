@@ -8,7 +8,7 @@ All notable changes to `interfaze` are documented here. The format follows
 
 ### Added
 
-- Keyless access: with no `apiKey` and no `INTERFAZE_API_KEY`, `new Interfaze()` constructs and sends requests without an `Authorization` header, instead of throwing `InterfazeError`. It never falls back to `OPENAI_API_KEY`. An explicit `apiKey` still takes precedence over `INTERFAZE_API_KEY`, and an empty string counts as no key. A `401` for a bad key surfaces as `AuthenticationError` with no keyless retry. The openai browser guard (`dangerouslyAllowBrowser`) still applies.
+- Keyless access: with no `apiKey` and no `INTERFAZE_API_KEY`, `new Interfaze()` constructs and sends requests without an `Authorization` header, instead of throwing `InterfazeError`. It never falls back to `OPENAI_API_KEY`. An explicit `apiKey` still takes precedence over `INTERFAZE_API_KEY`, and an empty or whitespace-only key counts as no key. A `401` for a bad key surfaces as `AuthenticationError` with no keyless retry. The openai browser guard (`dangerouslyAllowBrowser`) still applies.
 
 ### Changed
 
