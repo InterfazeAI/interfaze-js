@@ -44,8 +44,7 @@ const STAND_IN_AUTHORIZATION = `Bearer ${KEYLESS_STAND_IN_KEY}`;
 /** The `error.code` of the keyless daily-limit 429. */
 const DAILY_LIMIT_CODE = "keyless_daily_limit_exceeded";
 const HTTP_TOO_MANY_REQUESTS = 429;
-const MISSING_KEY_MESSAGE =
-  "Missing API key. Keyless requests do not work in a browser. Pass `new Interfaze({ apiKey })` or set the INTERFAZE_API_KEY environment variable.";
+const MISSING_KEY_MESSAGE = "Interfaze does not accept keyless requests from a browser. Pass an API key: `new Interfaze({ apiKey })`.";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
