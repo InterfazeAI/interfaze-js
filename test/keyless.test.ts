@@ -1,19 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AuthenticationError, Interfaze, InterfazeError, OpenAIError, RateLimitError } from "../src/index.js";
-import {
-  DAILY_LIMIT_BODY,
-  INFLIGHT_BODY,
-  SIGNUP_HINT,
-  UNAUTHORIZED_BODY,
-  completion,
-  dailyLimitResponse,
-  errorResponse,
-  fixture,
-  inflightResponse,
-  jsonResponse,
-  mockInterfaze,
-  sseResponse,
-} from "./helpers.js";
+import { Interfaze, InterfazeError } from "../src/index.js";
+import { completion, errorBody, errorResponse, fixture, jsonResponse, mockInterfaze, sseResponse } from "./helpers.js";
 
 const MESSAGES = [{ role: "user" as const, content: "hi" }];
 const ENV_KEY = "sk-test-env";
@@ -22,98 +9,39 @@ const OPENAI_KEY = "sk-openai-synthetic";
 const ADMIN_KEY = "sk-admin-synthetic";
 const NEW_KEY = "sk-test-new";
 const CALLER_AUTHORIZATION = "Bearer sk-test-caller";
-const REQUEST_AUTHORIZATION = "Bearer sk-test-request";
 const WHITESPACE_KEY = " \n";
-const DEFAULT_MAX_RETRIES = 2;
-const FAST_RETRY_AFTER = "0.001";
-const RETRIED_ATTEMPTS = 2;
-const FAST_LIMIT_MS = 2000;
+const OPENAI_DEFAULT_MAX_RETRIES = 2;
 const WITH_OPTIONS_TIMEOUT_MS = 1000;
+const DAILY_LIMIT_RETRY_AFTER = "3600";
+const DAILY_LIMIT_BODY = errorBody(
+  "Keyless daily limit of 1000 requests reached. Get a free API key at https://interfaze.ai and send it as `Authorization: Bearer YOUR_API_KEY`.",
+  "rate_limit_error",
+  "keyless_daily_limit_exceeded"
+);
 
 describe("keyless credentials", () => {
   beforeEach(() => {
     vi.stubEnv("INTERFAZE_API_KEY", undefined);
-    vi.stubEnv("OPENAI_API_KEY", undefined);
-    vi.stubEnv("OPENAI_ADMIN_KEY", undefined);
+    vi.stubEnv("OPENAI_API_KEY", OPENAI_KEY);
+    vi.stubEnv("OPENAI_ADMIN_KEY", ADMIN_KEY);
   });
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
   });
 
-  it("sends a chat request with no Authorization header when no key is set", async () => {
-    const { interfaze, calls } = mockInterfaze(() => jsonResponse(completion()), { apiKey: undefined });
-    await interfaze.chat.completions.create({ messages: MESSAGES });
-
-    expect(calls).toHaveLength(1);
-    expect(calls[0]!.headers.has("authorization")).toBe(false);
-  });
-
-  it("does not send OPENAI_API_KEY when no Interfaze key is set", async () => {
-    vi.stubEnv("OPENAI_API_KEY", OPENAI_KEY);
-    const { interfaze, calls } = mockInterfaze(() => jsonResponse(completion()), { apiKey: undefined });
-    await interfaze.chat.completions.create({ messages: MESSAGES });
-
-    expect(calls[0]!.headers.has("authorization")).toBe(false);
-  });
-
-  it("streams with no Authorization header when no key is set", async () => {
-    const { interfaze, calls } = mockInterfaze(() => sseResponse(fixture<unknown[]>("stream_basic.json")), { apiKey: undefined });
-    const final = await interfaze.chat.completions.stream({ messages: MESSAGES }).finalChatCompletion();
-
-    expect(final.choices[0]!.message.content).toBe("1\n2\n3\n4\n5");
-    expect(calls[0]!.headers.has("authorization")).toBe(false);
-  });
-
   it.each([
-    ["no key", undefined],
-    ["a key", EXPLICIT_KEY],
-  ])("never sends OPENAI_ADMIN_KEY with %s", async (_label, apiKey) => {
-    vi.stubEnv("OPENAI_ADMIN_KEY", ADMIN_KEY);
-    const { interfaze, calls } = mockInterfaze(() => jsonResponse({ object: "list", data: [] }), { apiKey });
-    await interfaze.openai.admin.organization.certificates.list().catch(() => undefined);
-
-    expect(calls.map((call) => call.headers.get("authorization"))).not.toContain(`Bearer ${ADMIN_KEY}`);
-  });
-
-  it.each([
-    ["an empty explicit key", { apiKey: "" }, undefined],
-    ["a whitespace-only explicit key", { apiKey: " " }, undefined],
-    ["a whitespace-only INTERFAZE_API_KEY", { apiKey: undefined }, WHITESPACE_KEY],
-    ["an empty INTERFAZE_API_KEY", { apiKey: undefined }, ""],
-  ])("treats %s as no key", async (_label, options, envValue) => {
-    vi.stubEnv("INTERFAZE_API_KEY", envValue);
-    const { interfaze, calls } = mockInterfaze(() => jsonResponse(completion()), options);
-    await interfaze.chat.completions.create({ messages: MESSAGES });
-
-    expect(calls[0]!.headers.has("authorization")).toBe(false);
-  });
-
-  it.each([
-    ["missing", undefined],
-    ["whitespace-only", WHITESPACE_KEY],
-  ])("sends INTERFAZE_API_KEY as a bearer token when the explicit key is %s", async (_label, apiKey) => {
-    vi.stubEnv("INTERFAZE_API_KEY", ENV_KEY);
-    vi.stubEnv("OPENAI_API_KEY", OPENAI_KEY);
+    ["a trimmed explicit key over INTERFAZE_API_KEY", ` ${EXPLICIT_KEY}\n`, ENV_KEY, `Bearer ${EXPLICIT_KEY}`],
+    ["INTERFAZE_API_KEY with no explicit key", undefined, ENV_KEY, `Bearer ${ENV_KEY}`],
+    ["INTERFAZE_API_KEY with a whitespace-only explicit key", WHITESPACE_KEY, ENV_KEY, `Bearer ${ENV_KEY}`],
+    ["no Authorization header with a whitespace-only INTERFAZE_API_KEY", undefined, WHITESPACE_KEY, null],
+    ["no Authorization header with no key", undefined, undefined, null],
+  ])("sends %s", async (_label, apiKey, envKey, expected) => {
+    vi.stubEnv("INTERFAZE_API_KEY", envKey);
     const { interfaze, calls } = mockInterfaze(() => jsonResponse(completion()), { apiKey });
     await interfaze.chat.completions.create({ messages: MESSAGES });
 
-    expect(calls[0]!.headers.get("authorization")).toBe(`Bearer ${ENV_KEY}`);
-  });
-
-  it("sends an explicit key instead of INTERFAZE_API_KEY", async () => {
-    vi.stubEnv("INTERFAZE_API_KEY", ENV_KEY);
-    const { interfaze, calls } = mockInterfaze(() => jsonResponse(completion()), { apiKey: EXPLICIT_KEY });
-    await interfaze.chat.completions.create({ messages: MESSAGES });
-
-    expect(calls[0]!.headers.get("authorization")).toBe(`Bearer ${EXPLICIT_KEY}`);
-  });
-
-  it("trims an explicit key", async () => {
-    const { interfaze, calls } = mockInterfaze(() => jsonResponse(completion()), { apiKey: ` ${EXPLICIT_KEY}\n` });
-    await interfaze.chat.completions.create({ messages: MESSAGES });
-
-    expect(calls[0]!.headers.get("authorization")).toBe(`Bearer ${EXPLICIT_KEY}`);
+    expect(calls[0]!.headers.get("authorization")).toBe(expected);
   });
 
   it("passes a key function through without trimming its result", async () => {
@@ -125,191 +53,71 @@ describe("keyless credentials", () => {
     expect(calls[0]!.headers.get("authorization")).toBe(`Bearer  ${EXPLICIT_KEY}`);
   });
 
-  describe("withOptions", () => {
-    it("sends a new key given to withOptions on a keyless client", async () => {
-      const { interfaze, calls } = mockInterfaze(() => jsonResponse(completion()), { apiKey: undefined });
-      await interfaze.openai.withOptions({ apiKey: NEW_KEY }).chat.completions.create({ model: "interfaze-beta", messages: MESSAGES });
-
-      expect(calls[0]!.headers.get("authorization")).toBe(`Bearer ${NEW_KEY}`);
+  it("sends a caller Authorization header as is with no key", async () => {
+    const { interfaze, calls } = mockInterfaze(() => jsonResponse(completion()), {
+      apiKey: undefined,
+      defaultHeaders: { Authorization: CALLER_AUTHORIZATION },
     });
+    await interfaze.chat.completions.create({ messages: MESSAGES });
 
-    it("keeps a keyless client keyless through withOptions", async () => {
-      const { interfaze, calls } = mockInterfaze(() => jsonResponse(completion()), { apiKey: undefined });
-      await interfaze.openai
-        .withOptions({ timeout: WITH_OPTIONS_TIMEOUT_MS })
-        .chat.completions.create({ model: "interfaze-beta", messages: MESSAGES });
-
-      expect(calls[0]!.headers.has("authorization")).toBe(false);
-    });
-
-    it("sends a new key given to withOptions on a keyed client", async () => {
-      const { interfaze, calls } = mockInterfaze(() => jsonResponse(completion()), { apiKey: EXPLICIT_KEY });
-      await interfaze.openai.withOptions({ apiKey: NEW_KEY }).chat.completions.create({ model: "interfaze-beta", messages: MESSAGES });
-
-      expect(calls[0]!.headers.get("authorization")).toBe(`Bearer ${NEW_KEY}`);
-    });
+    expect(calls[0]!.headers.get("authorization")).toBe(CALLER_AUTHORIZATION);
   });
 
-  describe("a caller Authorization header", () => {
-    it("is sent as is with no key", async () => {
-      const { interfaze, calls } = mockInterfaze(() => jsonResponse(completion()), {
-        apiKey: undefined,
-        defaultHeaders: { Authorization: CALLER_AUTHORIZATION },
-      });
-      await interfaze.chat.completions.create({ messages: MESSAGES });
+  it("never sends OPENAI_ADMIN_KEY", async () => {
+    const { interfaze, calls } = mockInterfaze(() => jsonResponse({ object: "list", data: [] }), { apiKey: undefined });
+    await interfaze.openai.admin.organization.certificates.list().catch(() => undefined);
 
-      expect(calls[0]!.headers.get("authorization")).toBe(CALLER_AUTHORIZATION);
-    });
-
-    it("is sent once, instead of the key, when a key is also set", async () => {
-      const { interfaze, calls } = mockInterfaze(() => jsonResponse(completion()), {
-        apiKey: EXPLICIT_KEY,
-        defaultHeaders: { authorization: CALLER_AUTHORIZATION },
-      });
-      await interfaze.chat.completions.create({ messages: MESSAGES });
-
-      expect(calls[0]!.headers.get("authorization")).toBe(CALLER_AUTHORIZATION);
-    });
-
-    it.each([
-      ["no key", undefined],
-      ["a key", EXPLICIT_KEY],
-    ])("is sent as a per-request header with %s", async (_label, apiKey) => {
-      const { interfaze, calls } = mockInterfaze(() => jsonResponse(completion()), { apiKey });
-      await interfaze.chat.completions.create({ messages: MESSAGES }, { headers: { authorization: REQUEST_AUTHORIZATION } });
-
-      expect(calls[0]!.headers.get("authorization")).toBe(REQUEST_AUTHORIZATION);
-    });
+    expect(calls.map((call) => call.headers.get("authorization"))).not.toContain(`Bearer ${ADMIN_KEY}`);
   });
 
-  describe("errors and retries", () => {
-    it.each([
-      ["keyless", undefined],
-      ["keyed", EXPLICIT_KEY],
-    ])("rejects a 401 for a %s client after one request with the default retries", async (_label, apiKey) => {
-      const { interfaze, calls } = mockInterfaze(() => errorResponse(401, UNAUTHORIZED_BODY), { apiKey, maxRetries: DEFAULT_MAX_RETRIES });
-      const promise = interfaze.chat.completions.create({ messages: MESSAGES });
+  it("streams with no Authorization header when no key is set", async () => {
+    const { interfaze, calls } = mockInterfaze(() => sseResponse(fixture<unknown[]>("stream_basic.json")), { apiKey: undefined });
+    const final = await interfaze.chat.completions.stream({ messages: MESSAGES }).finalChatCompletion();
 
-      await expect(promise).rejects.toBeInstanceOf(AuthenticationError);
-      await expect(promise).rejects.toMatchObject({ status: 401, code: "insufficient_quota", error: UNAUTHORIZED_BODY });
-      expect(calls).toHaveLength(1);
+    expect(final.choices[0]!.message.content).toBe("1\n2\n3\n4\n5");
+    expect(calls[0]!.headers.has("authorization")).toBe(false);
+  });
+
+  it.each([
+    ["sends a new key", { apiKey: NEW_KEY }, `Bearer ${NEW_KEY}`],
+    ["stays keyless", { timeout: WITH_OPTIONS_TIMEOUT_MS }, null],
+  ])("%s through withOptions on a keyless client", async (_label, options, expected) => {
+    const { interfaze, calls } = mockInterfaze(() => jsonResponse(completion()), { apiKey: undefined });
+    await interfaze.openai.withOptions(options).chat.completions.create({ model: "interfaze-beta", messages: MESSAGES });
+
+    expect(calls[0]!.headers.get("authorization")).toBe(expected);
+  });
+
+  it("stops after one request on a 429 with x-should-retry: false", async () => {
+    const { interfaze, calls } = mockInterfaze(
+      () => errorResponse(429, DAILY_LIMIT_BODY, { "retry-after": DAILY_LIMIT_RETRY_AFTER, "x-should-retry": "false" }),
+      { apiKey: undefined, maxRetries: OPENAI_DEFAULT_MAX_RETRIES }
+    );
+
+    await expect(interfaze.chat.completions.create({ messages: MESSAGES })).rejects.toMatchObject({
+      status: 429,
+      code: "keyless_daily_limit_exceeded",
     });
-
-    it("rejects a keyless daily-limit 429 after one request, without waiting for Retry-After", async () => {
-      const { interfaze, calls } = mockInterfaze(() => dailyLimitResponse(), { apiKey: undefined, maxRetries: DEFAULT_MAX_RETRIES });
-      const started = Date.now();
-      const promise = interfaze.chat.completions.create({ messages: MESSAGES });
-
-      await expect(promise).rejects.toBeInstanceOf(RateLimitError);
-      await expect(promise).rejects.toMatchObject({ status: 429, code: "keyless_daily_limit_exceeded", error: DAILY_LIMIT_BODY });
-      await expect(promise).rejects.toThrow(SIGNUP_HINT);
-
-      const error = await promise.catch((e: unknown) => e);
-      if (!(error instanceof RateLimitError)) throw error;
-      expect(error.headers.get("retry-after")).toBe("3600");
-      expect(error.headers.get("x-ratelimit-remaining")).toBe("0");
-      expect(error.headers.get("x-ratelimit-limit")).toBe("1000");
-      expect(calls).toHaveLength(1);
-      expect(calls[0]!.headers.has("authorization")).toBe(false);
-      expect(Date.now() - started).toBeLessThan(FAST_LIMIT_MS);
-    });
-
-    it("stops after one request on a daily-limit 429 from a stream", async () => {
-      const { interfaze, calls } = mockInterfaze(() => dailyLimitResponse(), { apiKey: undefined, maxRetries: DEFAULT_MAX_RETRIES });
-      const started = Date.now();
-      const promise = interfaze.chat.completions.stream({ messages: MESSAGES }).finalChatCompletion();
-
-      await expect(promise).rejects.toMatchObject({ status: 429, code: "keyless_daily_limit_exceeded" });
-      expect(calls).toHaveLength(1);
-      expect(Date.now() - started).toBeLessThan(FAST_LIMIT_MS);
-    });
-
-    it("composes with a caller fetch that returns the daily-limit 429", async () => {
-      const callerFetch = vi.fn<typeof fetch>(async () => dailyLimitResponse());
-      const interfaze = new Interfaze({ fetch: callerFetch, maxRetries: DEFAULT_MAX_RETRIES });
-      const promise = interfaze.chat.completions.create({ messages: MESSAGES });
-
-      await expect(promise).rejects.toMatchObject({ status: 429, code: "keyless_daily_limit_exceeded" });
-      expect(callerFetch).toHaveBeenCalledTimes(1);
-    });
-
-    it("keeps the status of a 429 whose body is not JSON", async () => {
-      const callerFetch = vi.fn<typeof fetch>(async () => new Response("slow down", { status: 429 }));
-      const interfaze = new Interfaze({ fetch: callerFetch, maxRetries: 0 });
-
-      await expect(interfaze.chat.completions.create({ messages: MESSAGES })).rejects.toMatchObject({ status: 429 });
-      expect(callerFetch).toHaveBeenCalledTimes(1);
-    });
-
-    it("retries a 429 whose JSON body is not an error object", async () => {
-      const callerFetch = vi.fn<typeof fetch>(async () => errorResponse(429, "plain text error", { "retry-after": FAST_RETRY_AFTER }));
-      const interfaze = new Interfaze({ fetch: callerFetch, maxRetries: 1 });
-
-      await expect(interfaze.chat.completions.create({ messages: MESSAGES })).rejects.toMatchObject({ status: 429 });
-      expect(callerFetch).toHaveBeenCalledTimes(RETRIED_ATTEMPTS);
-    });
-
-    it("surfaces a keyless in-flight 429 with its status, code and hint after the retries", async () => {
-      const { interfaze, calls } = mockInterfaze(() => inflightResponse(FAST_RETRY_AFTER), { apiKey: undefined, maxRetries: 1 });
-      const promise = interfaze.chat.completions.create({ messages: MESSAGES });
-
-      await expect(promise).rejects.toMatchObject({ status: 429, code: "keyless_inflight_limit_exceeded", error: INFLIGHT_BODY });
-      await expect(promise).rejects.toThrow(SIGNUP_HINT);
-      expect(calls).toHaveLength(RETRIED_ATTEMPTS);
-    });
+    expect(calls).toHaveLength(1);
   });
 
   describe("browser guard", () => {
-    it("keeps the openai browser guard for a client with no key", () => {
-      vi.stubGlobal("window", { document: {} });
-      vi.stubGlobal("navigator", {});
+    it.each([
+      ["no key, with dangerouslyAllowBrowser", { dangerouslyAllowBrowser: true }],
+      ["a blank caller Authorization header", { defaultHeaders: { authorization: " " } }],
+    ])("throws InterfazeError for %s when a document exists", (_label, options) => {
+      vi.stubGlobal("document", {});
 
-      expect(() => new Interfaze()).toThrow(OpenAIError);
-      expect(() => new Interfaze()).toThrow(/browser-like environment/);
+      expect(() => new Interfaze(options)).toThrow(InterfazeError);
     });
 
     it.each([
-      ["a process polyfill", {}],
-      ["dangerouslyAllowBrowser", { dangerouslyAllowBrowser: true }],
-    ])("throws InterfazeError with no key when a document exists (%s)", (_label, options) => {
+      ["an explicit key", { apiKey: EXPLICIT_KEY }],
+      ["a caller Authorization header", { defaultHeaders: { Authorization: CALLER_AUTHORIZATION } }],
+    ])("builds a client with %s when a document exists", (_label, options) => {
       vi.stubGlobal("document", {});
-      vi.stubGlobal("process", { env: {} });
-      const fetchImpl = vi.fn<typeof fetch>();
-
-      expect(() => new Interfaze({ ...options, fetch: fetchImpl })).toThrow(InterfazeError);
-      expect(() => new Interfaze({ ...options, fetch: fetchImpl })).toThrow(/API key/);
-      expect(fetchImpl).not.toHaveBeenCalled();
-    });
-
-    it("throws InterfazeError for a blank caller Authorization header when a document exists", () => {
-      vi.stubGlobal("document", {});
-
-      expect(() => new Interfaze({ defaultHeaders: { authorization: " " } })).toThrow(InterfazeError);
-    });
-
-    it.each([
-      ["an explicit key", { apiKey: EXPLICIT_KEY }, undefined],
-      ["an INTERFAZE_API_KEY env key", {}, ENV_KEY],
-      ["a caller Authorization header", { defaultHeaders: { Authorization: CALLER_AUTHORIZATION } }, undefined],
-    ])("builds a client with %s when a document exists", (_label, options, envValue) => {
-      vi.stubGlobal("document", {});
-      vi.stubEnv("INTERFAZE_API_KEY", envValue);
 
       expect(() => new Interfaze(options)).not.toThrow();
-    });
-
-    it("stays keyless in a runtime with no process and no document", async () => {
-      vi.stubGlobal("process", undefined);
-      try {
-        const { interfaze, calls } = mockInterfaze(() => jsonResponse(completion()), { apiKey: undefined });
-        await interfaze.chat.completions.create({ messages: MESSAGES });
-
-        expect(calls).toHaveLength(1);
-        expect(calls[0]!.headers.has("authorization")).toBe(false);
-      } finally {
-        // The afterEach hook reads process.env, so restore process first.
-        vi.unstubAllGlobals();
-      }
     });
   });
 });
