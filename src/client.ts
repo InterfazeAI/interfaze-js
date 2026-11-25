@@ -40,9 +40,17 @@ function envVar(name: string): string | undefined {
 /** Stands in for a missing key, because openai rejects an empty key and otherwise reads OPENAI_API_KEY. */
 const KEYLESS_STAND_IN_KEY = "interfaze-keyless";
 const MISSING_KEY_MESSAGE = "Interfaze does not accept keyless requests from a browser. Pass an API key: `new Interfaze({ apiKey })`.";
+const KEYLESS_WARNING = "Interfaze SDK is running in keyless mode. For higher rate limits, get an API key at https://interfaze.ai/dashboard.";
+const keylessWarning = { shown: false };
 
 function hasAuthorization(headers: Record<string, unknown>): boolean {
   return Object.entries(headers).some(([name, value]) => name.toLowerCase() === "authorization" && typeof value === "string" && value.trim() !== "");
+}
+
+function warnKeylessOnce(): void {
+  if (keylessWarning.shown) return;
+  keylessWarning.shown = true;
+  console.warn(KEYLESS_WARNING);
 }
 
 declare const importScripts: unknown;
@@ -82,8 +90,10 @@ export class Interfaze {
     const resolvedKey = explicitKey || envVar("INTERFAZE_API_KEY")?.trim();
     const callerHeaders = headerRecord(defaultHeaders);
     const callerAuthorization = hasAuthorization(callerHeaders);
+    const keyless = !resolvedKey && !callerAuthorization;
     // A browser cannot hide a key and the API rejects keyless browser requests, so a keyless client fails before any request.
-    if (!resolvedKey && !callerAuthorization && isBrowserRuntime()) throw new InterfazeError(MISSING_KEY_MESSAGE);
+    if (keyless && isBrowserRuntime()) throw new InterfazeError(MISSING_KEY_MESSAGE);
+    if (keyless) warnKeylessOnce();
 
     const headers = callerHeaders as Record<string, string | null>;
     if (showAdditionalInfo) headers[HEADERS.showAdditionalInfo] = "true";

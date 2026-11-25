@@ -27,10 +27,12 @@ describe("keyless credentials", () => {
     vi.stubEnv("INTERFAZE_API_KEY", undefined);
     vi.stubEnv("OPENAI_API_KEY", OPENAI_KEY);
     vi.stubEnv("OPENAI_ADMIN_KEY", ADMIN_KEY);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
   });
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it.each([
@@ -157,6 +159,37 @@ describe("keyless credentials", () => {
       await interfaze.chat.completions.create({ messages: MESSAGES });
 
       expect(calls[0]!.headers.get("authorization")).toBe(`Bearer ${EXPLICIT_KEY}`);
+    });
+  });
+
+  describe("keyless warning", () => {
+    const KEYLESS_WARNING = "Interfaze SDK is running in keyless mode. For higher rate limits, get an API key at https://interfaze.ai/dashboard.";
+
+    // A fresh module instance resets the once-per-process flag.
+    const freshInterfaze = async () => {
+      vi.resetModules();
+      return (await import("../src/index.js")).Interfaze;
+    };
+
+    it("warns once, with the keyless text, across keyless clients", async () => {
+      const FreshInterfaze = await freshInterfaze();
+      new FreshInterfaze();
+      new FreshInterfaze();
+
+      expect(console.warn).toHaveBeenCalledTimes(1);
+      expect(console.warn).toHaveBeenCalledWith(KEYLESS_WARNING);
+    });
+
+    it.each([
+      ["an explicit key", { apiKey: EXPLICIT_KEY }, undefined],
+      ["INTERFAZE_API_KEY", {}, ENV_KEY],
+      ["a caller Authorization header", { defaultHeaders: { Authorization: CALLER_AUTHORIZATION } }, undefined],
+    ])("does not warn for %s", async (_label, options, envKey) => {
+      vi.stubEnv("INTERFAZE_API_KEY", envKey);
+      const FreshInterfaze = await freshInterfaze();
+      new FreshInterfaze(options);
+
+      expect(console.warn).not.toHaveBeenCalled();
     });
   });
 });
