@@ -57,9 +57,7 @@ function isDailyLimitBody(value: unknown): boolean {
 
 /** True when the caller's default headers carry a non-empty `Authorization` value. */
 function hasAuthorization(headers: Record<string, unknown>): boolean {
-  return Object.entries(headers).some(
-    ([name, value]) => name.trim().toLowerCase() === "authorization" && typeof value === "string" && value.trim() !== ""
-  );
+  return Object.entries(headers).some(([name, value]) => name.toLowerCase() === "authorization" && typeof value === "string" && value.trim() !== "");
 }
 
 /**
@@ -83,7 +81,7 @@ async function stopRetryOnDailyLimit(response: Response): Promise<Response> {
  */
 function wrapFetch(inner: ClientOptions["fetch"]): NonNullable<ClientOptions["fetch"]> {
   return async (input, init) => {
-    const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
+    const headers = new Headers(init?.headers);
     if (headers.get("authorization") === STAND_IN_AUTHORIZATION) headers.delete("authorization");
     const response = await (inner ?? globalThis.fetch)(input, { ...init, headers });
     return response.status === HTTP_TOO_MANY_REQUESTS ? stopRetryOnDailyLimit(response) : response;

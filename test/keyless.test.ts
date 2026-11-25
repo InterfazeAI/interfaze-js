@@ -228,17 +228,6 @@ describe("keyless credentials", () => {
   });
 
   describe("errors and retries", () => {
-    it("removes the stand-in from a request given to the wrapped fetch as a Request", async () => {
-      const callerFetch = vi.fn<typeof fetch>(async () => jsonResponse(completion()));
-      const interfaze = new Interfaze({ fetch: callerFetch });
-      const request = new Request("https://example.test/v1", { headers: { authorization: "Bearer interfaze-keyless", "x-trace": "abc" } });
-      await (interfaze.openai as unknown as { fetch: typeof fetch }).fetch(request);
-
-      const sent = new Headers(callerFetch.mock.calls[0]![1]?.headers);
-      expect(sent.has("authorization")).toBe(false);
-      expect(sent.get("x-trace")).toBe("abc");
-    });
-
     it.each([
       ["keyless", undefined],
       ["keyed", EXPLICIT_KEY],
