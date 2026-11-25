@@ -21,7 +21,7 @@ const interfaze = new Interfaze({ apiKey: "sk_..." }); // or set INTERFAZE_API_K
 
 Without an API key, `Interfaze` sends requests with no `Authorization` header. This works only from server-side code. Interfaze limits keyless requests from each IP address and does not accept them from a browser. A blank key counts as no key. See [Try Interfaze without an API key](https://interfaze.ai/docs#try-interfaze-without-an-api-key) and the [keyless limits](https://interfaze.ai/docs/limits#keyless-access).
 
-When the keyless daily limit is reached, the client throws the `429` at once and does not retry it. Keyless access needs a release of `interfaze` later than 1.0.3.
+When the keyless daily limit is reached, the client throws the `429` without a retry, unless the limit resets within the next minute. Keyless access needs a release of `interfaze` later than 1.0.3.
 
 ## Your first request
 
