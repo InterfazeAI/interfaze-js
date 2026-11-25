@@ -33,21 +33,19 @@ function headerRecord(given: ClientOptions["defaultHeaders"]): Record<string, un
   return { ...given };
 }
 
-/** Reads an environment variable. A runtime without `process` has no environment to read. */
 function envVar(name: string): string | undefined {
   return typeof process !== "undefined" && process.env ? process.env[name] : undefined;
 }
 
-/** The openai client rejects an empty key and otherwise reads OPENAI_API_KEY, so a keyless client passes this stand-in. */
+/** Stands in for a missing key, because openai rejects an empty key and otherwise reads OPENAI_API_KEY. */
 const KEYLESS_STAND_IN_KEY = "interfaze-keyless";
 const MISSING_KEY_MESSAGE = "Interfaze does not accept keyless requests from a browser. Pass an API key: `new Interfaze({ apiKey })`.";
 
-/** True when the caller's default headers carry a non-empty `Authorization` value. */
 function hasAuthorization(headers: Record<string, unknown>): boolean {
   return Object.entries(headers).some(([name, value]) => name.toLowerCase() === "authorization" && typeof value === "string" && value.trim() !== "");
 }
 
-/** An OpenAI client that sends no `Authorization` header while its key is the stand-in, also after `withOptions`. */
+/** Sends no `Authorization` header while the key is the stand-in, also after `withOptions` with no key or a blank key. */
 class InterfazeOpenAI extends OpenAI {
   override withOptions(options: Partial<ClientOptions>): this {
     const { apiKey } = options;
