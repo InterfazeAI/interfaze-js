@@ -26,6 +26,8 @@ const interfaze = new Interfaze({ apiKey: "sk_..." }); // or set INTERFAZE_API_K
 const interfaze = new Interfaze();
 ```
 
+`interfaze.isKeyless` is `true` when the client has no API key.
+
 See [Try Interfaze without an API key](https://interfaze.ai/docs#try-interfaze-without-an-api-key) for the limits and rules. Keyless access needs a release of `interfaze` later than 1.0.3.
 
 ## Your first request

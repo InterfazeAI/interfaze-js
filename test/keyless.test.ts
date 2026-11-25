@@ -162,6 +162,19 @@ describe("keyless credentials", () => {
     });
   });
 
+  describe("isKeyless", () => {
+    it.each([
+      ["no key", {}, undefined, true],
+      ["an explicit key", { apiKey: EXPLICIT_KEY }, undefined, false],
+      ["INTERFAZE_API_KEY", {}, ENV_KEY, false],
+      ["a caller Authorization header", { defaultHeaders: { Authorization: CALLER_AUTHORIZATION } }, undefined, false],
+    ])("is computed for %s", (_label, options, envKey, expected) => {
+      vi.stubEnv("INTERFAZE_API_KEY", envKey);
+
+      expect(new Interfaze(options).isKeyless).toBe(expected);
+    });
+  });
+
   describe("keyless warning", () => {
     const KEYLESS_WARNING = "Interfaze SDK is running in keyless mode. For higher rate limits, get an API key at https://interfaze.ai/dashboard.";
 

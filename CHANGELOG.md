@@ -9,6 +9,7 @@ All notable changes to `interfaze` are documented here. The format follows
 ### Added
 
 - Keyless access: in server-side code with no API key, `new Interfaze()` sends requests without an `Authorization` header, instead of throwing `InterfazeError`. Keyless access needs a release of `interfaze` later than 1.0.3.
+- A keyless client warns once per process, and `Interfaze.isKeyless` is `true` when the client sends no `Authorization` header.
 
 ### Changed
 

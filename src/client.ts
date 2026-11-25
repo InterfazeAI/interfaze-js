@@ -82,6 +82,8 @@ export class Interfaze {
   readonly chat: InterfazeChat;
   readonly models: OpenAI["models"];
   readonly tasks: Tasks;
+  /** `true` when the client sends no `Authorization` header. */
+  readonly isKeyless: boolean;
 
   constructor(options: InterfazeOptions = {}) {
     const { showAdditionalInfo, bypassMoA, bypassCache, adminKey, apiKey, baseURL, defaultHeaders, ...rest } = options;
@@ -94,6 +96,7 @@ export class Interfaze {
     // A browser cannot hide a key and the API rejects keyless browser requests, so a keyless client fails before any request.
     if (keyless && isBrowserRuntime()) throw new InterfazeError(MISSING_KEY_MESSAGE);
     if (keyless) warnKeylessOnce();
+    this.isKeyless = keyless;
 
     const headers = callerHeaders as Record<string, string | null>;
     if (showAdditionalInfo) headers[HEADERS.showAdditionalInfo] = "true";
