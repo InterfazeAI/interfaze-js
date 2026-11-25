@@ -40,7 +40,6 @@ function envVar(name: string): string | undefined {
 
 /** The openai client rejects an empty key and otherwise reads OPENAI_API_KEY, so a keyless client passes this stand-in. */
 const KEYLESS_STAND_IN_KEY = "interfaze-keyless";
-const STAND_IN_AUTHORIZATION = `Bearer ${KEYLESS_STAND_IN_KEY}`;
 const MISSING_KEY_MESSAGE = "Interfaze does not accept keyless requests from a browser. Pass an API key: `new Interfaze({ apiKey })`.";
 
 /** True when the caller's default headers carry a non-empty `Authorization` value. */
@@ -48,13 +47,15 @@ function hasAuthorization(headers: Record<string, unknown>): boolean {
   return Object.entries(headers).some(([name, value]) => name.toLowerCase() === "authorization" && typeof value === "string" && value.trim() !== "");
 }
 
-/** Wraps `fetch` for a client that can be keyless. The wrapper removes the stand-in `Authorization` value. */
-function wrapFetch(inner: ClientOptions["fetch"]): NonNullable<ClientOptions["fetch"]> {
-  return async (input, init) => {
-    const headers = new Headers(init?.headers);
-    if (headers.get("authorization") === STAND_IN_AUTHORIZATION) headers.delete("authorization");
-    return (inner ?? globalThis.fetch)(input, { ...init, headers });
-  };
+/** An OpenAI client that sends no `Authorization` header while its key is the stand-in, also after `withOptions`. */
+class InterfazeOpenAI extends OpenAI {
+  protected override async bearerAuth(...args: Parameters<OpenAI["bearerAuth"]>) {
+    return this.apiKey === KEYLESS_STAND_IN_KEY ? undefined : super.bearerAuth(...args);
+  }
+
+  protected override validateHeaders(...args: Parameters<OpenAI["validateHeaders"]>) {
+    if (this.apiKey !== KEYLESS_STAND_IN_KEY) super.validateHeaders(...args);
+  }
 }
 
 /** Interfaze API client — an OpenAI-compatible client wired to the Interfaze endpoint. */
@@ -65,7 +66,7 @@ export class Interfaze {
   readonly tasks: Tasks;
 
   constructor(options: InterfazeOptions = {}) {
-    const { showAdditionalInfo, bypassMoA, bypassCache, adminKey, apiKey, baseURL, defaultHeaders, fetch: callerFetch, ...rest } = options;
+    const { showAdditionalInfo, bypassMoA, bypassCache, adminKey, apiKey, baseURL, defaultHeaders, ...rest } = options;
 
     const explicitKey = typeof apiKey === "string" ? apiKey.trim() : apiKey;
     const resolvedKey = explicitKey || envVar("INTERFAZE_API_KEY")?.trim();
@@ -80,14 +81,13 @@ export class Interfaze {
     if (bypassCache) headers[HEADERS.bypassCache] = "true";
     if (adminKey) headers[HEADERS.adminKey] = adminKey;
 
-    this.openai = new OpenAI({
+    this.openai = new InterfazeOpenAI({
       ...rest,
       apiKey: resolvedKey || KEYLESS_STAND_IN_KEY,
       // Left undefined, this falls back to OPENAI_ADMIN_KEY, and the openai client would send that key to Interfaze.
       adminAPIKey: rest.adminAPIKey ?? null,
       baseURL: baseURL ?? INTERFAZE_BASE_URL,
       defaultHeaders: headers,
-      fetch: wrapFetch(callerFetch),
       timeout: rest.timeout ?? DEFAULT_TIMEOUT_MS,
     });
 

@@ -1,6 +1,9 @@
+import type { ClientOptions } from "openai";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Interfaze, InterfazeError } from "../src/index.js";
 import { completion, errorBody, errorResponse, fixture, jsonResponse, mockInterfaze, sseResponse } from "./helpers.js";
+
+type Fetch = NonNullable<ClientOptions["fetch"]>;
 
 const MESSAGES = [{ role: "user" as const, content: "hi" }];
 const ENV_KEY = "sk-test-env";
@@ -86,6 +89,17 @@ describe("keyless credentials", () => {
     await interfaze.openai.withOptions(options).chat.completions.create({ model: "interfaze-beta", messages: MESSAGES });
 
     expect(calls[0]!.headers.get("authorization")).toBe(expected);
+  });
+
+  it.each([
+    ["no Authorization header from a keyless client", undefined, null],
+    ["the key from a keyed client", EXPLICIT_KEY, `Bearer ${EXPLICIT_KEY}`],
+  ])("sends %s through withOptions with a new fetch", async (_label, apiKey, expected) => {
+    const fetch = vi.fn<Fetch>(async () => jsonResponse(completion()));
+    const { interfaze } = mockInterfaze(() => jsonResponse(completion()), { apiKey });
+    await interfaze.openai.withOptions({ fetch }).chat.completions.create({ model: "interfaze-beta", messages: MESSAGES });
+
+    expect(new Headers(fetch.mock.calls[0]![1]?.headers).get("authorization")).toBe(expected);
   });
 
   it("stops after one request on a 429 with x-should-retry: false", async () => {
