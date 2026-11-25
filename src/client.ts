@@ -41,50 +41,19 @@ function envVar(name: string): string | undefined {
 /** The openai client rejects an empty key and otherwise reads OPENAI_API_KEY, so a keyless client passes this stand-in. */
 const KEYLESS_STAND_IN_KEY = "interfaze-keyless";
 const STAND_IN_AUTHORIZATION = `Bearer ${KEYLESS_STAND_IN_KEY}`;
-/** The `error.code` of the keyless daily-limit 429. */
-const DAILY_LIMIT_CODE = "keyless_daily_limit_exceeded";
-const HTTP_TOO_MANY_REQUESTS = 429;
 const MISSING_KEY_MESSAGE = "Interfaze does not accept keyless requests from a browser. Pass an API key: `new Interfaze({ apiKey })`.";
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-/** True for a parsed 429 body that carries the keyless daily-limit code. */
-function isDailyLimitBody(value: unknown): boolean {
-  return isRecord(value) && isRecord(value["error"]) && value["error"]["code"] === DAILY_LIMIT_CODE;
-}
 
 /** True when the caller's default headers carry a non-empty `Authorization` value. */
 function hasAuthorization(headers: Record<string, unknown>): boolean {
   return Object.entries(headers).some(([name, value]) => name.toLowerCase() === "authorization" && typeof value === "string" && value.trim() !== "");
 }
 
-/**
- * Marks the keyless daily-limit 429 as not retryable. The openai client sleeps for the full
- * `Retry-After` (until the next UTC midnight) before it retries, and `timeout` does not cover that sleep.
- */
-async function stopRetryOnDailyLimit(response: Response): Promise<Response> {
-  const body: unknown = await response
-    .clone()
-    .json()
-    .catch(() => undefined);
-  if (!isDailyLimitBody(body)) return response;
-  const headers = new Headers(response.headers);
-  headers.set("x-should-retry", "false");
-  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
-}
-
-/**
- * Wraps `fetch` for a client that can be keyless. The wrapper removes the stand-in `Authorization` value
- * and stops the retry of a keyless daily-limit 429.
- */
+/** Wraps `fetch` for a client that can be keyless. The wrapper removes the stand-in `Authorization` value. */
 function wrapFetch(inner: ClientOptions["fetch"]): NonNullable<ClientOptions["fetch"]> {
   return async (input, init) => {
     const headers = new Headers(init?.headers);
     if (headers.get("authorization") === STAND_IN_AUTHORIZATION) headers.delete("authorization");
-    const response = await (inner ?? globalThis.fetch)(input, { ...init, headers });
-    return response.status === HTTP_TOO_MANY_REQUESTS ? stopRetryOnDailyLimit(response) : response;
+    return (inner ?? globalThis.fetch)(input, { ...init, headers });
   };
 }
 
