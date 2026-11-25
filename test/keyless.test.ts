@@ -84,6 +84,8 @@ describe("keyless credentials", () => {
   it.each([
     ["sends a new key", { apiKey: NEW_KEY }, `Bearer ${NEW_KEY}`],
     ["stays keyless", { timeout: WITH_OPTIONS_TIMEOUT_MS }, null],
+    ["stays keyless with an empty key", { apiKey: "" }, null],
+    ["stays keyless with a whitespace-only key", { apiKey: " " }, null],
   ])("%s through withOptions on a keyless client", async (_label, options, expected) => {
     const { interfaze, calls } = mockInterfaze(() => jsonResponse(completion()), { apiKey: undefined });
     await interfaze.openai.withOptions(options).chat.completions.create({ model: "interfaze-beta", messages: MESSAGES });

@@ -49,6 +49,11 @@ function hasAuthorization(headers: Record<string, unknown>): boolean {
 
 /** An OpenAI client that sends no `Authorization` header while its key is the stand-in, also after `withOptions`. */
 class InterfazeOpenAI extends OpenAI {
+  override withOptions(options: Partial<ClientOptions>): this {
+    const { apiKey } = options;
+    return super.withOptions(typeof apiKey === "string" ? { ...options, apiKey: apiKey.trim() || KEYLESS_STAND_IN_KEY } : options);
+  }
+
   protected override async bearerAuth(...args: Parameters<OpenAI["bearerAuth"]>) {
     return this.apiKey === KEYLESS_STAND_IN_KEY ? undefined : super.bearerAuth(...args);
   }
