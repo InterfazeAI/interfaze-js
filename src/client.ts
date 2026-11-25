@@ -55,25 +55,11 @@ function isDailyLimitBody(value: unknown): boolean {
   return isRecord(value) && isRecord(value["error"]) && value["error"]["code"] === DAILY_LIMIT_CODE;
 }
 
-/** An `Authorization` line of `OPENAI_CUSTOM_HEADERS`, as the openai client reads it. */
-const AUTHORIZATION_LINE = /^\s*authorization\s*:(.*)$/i;
-
-function isAuthorizationName(name: string): boolean {
-  return name.trim().toLowerCase() === "authorization";
-}
-
 /** True when the caller's default headers carry a non-empty `Authorization` value. */
 function hasAuthorization(headers: Record<string, unknown>): boolean {
-  return Object.entries(headers).some(([name, value]) => isAuthorizationName(name) && typeof value === "string" && value.trim() !== "");
-}
-
-/**
- * The openai client merges `OPENAI_CUSTOM_HEADERS` into its default headers, where an `Authorization`
- * line overrides the key. This returns the value of that line, so the fetch wrapper can replace it.
- */
-function envAuthorization(): string | undefined {
-  const values = (envVar("OPENAI_CUSTOM_HEADERS") ?? "").split("\n").flatMap((line) => AUTHORIZATION_LINE.exec(line)?.[1]?.trim() ?? []);
-  return values[values.length - 1];
+  return Object.entries(headers).some(
+    ([name, value]) => name.trim().toLowerCase() === "authorization" && typeof value === "string" && value.trim() !== ""
+  );
 }
 
 /**
@@ -91,27 +77,14 @@ async function stopRetryOnDailyLimit(response: Response): Promise<Response> {
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
-interface WrapOptions {
-  /** The caller's `fetch`, or the global one when the caller sets none. */
-  inner: ClientOptions["fetch"];
-  /** The `Authorization` value of `OPENAI_CUSTOM_HEADERS`, unless the caller sets an `Authorization` header. */
-  envAuthorization: string | undefined;
-  /** The `Authorization` value that replaces the one from `OPENAI_CUSTOM_HEADERS`, when the client has a key. */
-  ownAuthorization: string | undefined;
-}
-
 /**
- * Wraps `fetch` for a client that can be keyless. The wrapper removes the stand-in `Authorization` value,
- * replaces an OpenAI `Authorization` line from the environment, and stops the retry of a keyless daily-limit 429.
+ * Wraps `fetch` for a client that can be keyless. The wrapper removes the stand-in `Authorization` value
+ * and stops the retry of a keyless daily-limit 429.
  */
-function wrapFetch({ inner, envAuthorization: fromEnv, ownAuthorization }: WrapOptions): NonNullable<ClientOptions["fetch"]> {
+function wrapFetch(inner: ClientOptions["fetch"]): NonNullable<ClientOptions["fetch"]> {
   return async (input, init) => {
     const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
-    const authorization = headers.get("authorization");
-    const isStandIn = authorization === STAND_IN_AUTHORIZATION;
-    const isFromEnv = authorization !== null && authorization === fromEnv;
-    if (isStandIn || isFromEnv) headers.delete("authorization");
-    if (isFromEnv && ownAuthorization) headers.set("authorization", ownAuthorization);
+    if (headers.get("authorization") === STAND_IN_AUTHORIZATION) headers.delete("authorization");
     const response = await (inner ?? globalThis.fetch)(input, { ...init, headers });
     return response.status === HTTP_TOO_MANY_REQUESTS ? stopRetryOnDailyLimit(response) : response;
   };
@@ -147,11 +120,7 @@ export class Interfaze {
       adminAPIKey: rest.adminAPIKey ?? null,
       baseURL: baseURL ?? INTERFAZE_BASE_URL,
       defaultHeaders: headers,
-      fetch: wrapFetch({
-        inner: callerFetch,
-        envAuthorization: callerAuthorization ? undefined : envAuthorization(),
-        ownAuthorization: typeof resolvedKey === "string" ? `Bearer ${resolvedKey}` : undefined,
-      }),
+      fetch: wrapFetch(callerFetch),
       timeout: rest.timeout ?? DEFAULT_TIMEOUT_MS,
     });
 

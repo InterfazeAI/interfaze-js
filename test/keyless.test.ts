@@ -35,7 +35,6 @@ describe("keyless credentials", () => {
     vi.stubEnv("INTERFAZE_API_KEY", undefined);
     vi.stubEnv("OPENAI_API_KEY", undefined);
     vi.stubEnv("OPENAI_ADMIN_KEY", undefined);
-    vi.stubEnv("OPENAI_CUSTOM_HEADERS", undefined);
   });
   afterEach(() => {
     vi.unstubAllEnvs();
@@ -183,48 +182,6 @@ describe("keyless credentials", () => {
       await interfaze.openai.withOptions({ apiKey: NEW_KEY }).chat.completions.create({ model: "interfaze-beta", messages: MESSAGES });
 
       expect(calls[0]!.headers.get("authorization")).toBe(`Bearer ${NEW_KEY}`);
-    });
-  });
-
-  describe("OPENAI_CUSTOM_HEADERS", () => {
-    it.each([
-      ["Authorization", `Authorization: Bearer ${OPENAI_KEY}\nx-team: platform`],
-      ["a lower-case authorization", `x-team: platform\nauthorization: Bearer ${OPENAI_KEY}`],
-    ])("does not send %s from the env to Interfaze when no key is set", async (_label, custom) => {
-      vi.stubEnv("OPENAI_CUSTOM_HEADERS", custom);
-      const { interfaze, calls } = mockInterfaze(() => jsonResponse(completion()), { apiKey: undefined });
-      await interfaze.chat.completions.create({ messages: MESSAGES });
-
-      expect(calls[0]!.headers.has("authorization")).toBe(false);
-    });
-
-    it("sends the Interfaze key instead of an Authorization line from the env", async () => {
-      vi.stubEnv("OPENAI_CUSTOM_HEADERS", `Authorization: Bearer ${OPENAI_KEY}`);
-      const { interfaze, calls } = mockInterfaze(() => jsonResponse(completion()), { apiKey: EXPLICIT_KEY });
-      await interfaze.chat.completions.create({ messages: MESSAGES });
-
-      expect(calls[0]!.headers.get("authorization")).toBe(`Bearer ${EXPLICIT_KEY}`);
-    });
-
-    it("sends a caller Authorization header instead of an Authorization line from the env", async () => {
-      vi.stubEnv("OPENAI_CUSTOM_HEADERS", `Authorization: Bearer ${OPENAI_KEY}`);
-      const { interfaze, calls } = mockInterfaze(() => jsonResponse(completion()), {
-        apiKey: undefined,
-        defaultHeaders: { Authorization: CALLER_AUTHORIZATION },
-      });
-      await interfaze.chat.completions.create({ messages: MESSAGES });
-
-      expect(calls[0]!.headers.get("authorization")).toBe(CALLER_AUTHORIZATION);
-    });
-    it("sends a caller Authorization header that equals the env Authorization line", async () => {
-      vi.stubEnv("OPENAI_CUSTOM_HEADERS", `Authorization: ${CALLER_AUTHORIZATION}`);
-      const { interfaze, calls } = mockInterfaze(() => jsonResponse(completion()), {
-        apiKey: undefined,
-        defaultHeaders: { Authorization: CALLER_AUTHORIZATION },
-      });
-      await interfaze.chat.completions.create({ messages: MESSAGES });
-
-      expect(calls[0]!.headers.get("authorization")).toBe(CALLER_AUTHORIZATION);
     });
   });
 
