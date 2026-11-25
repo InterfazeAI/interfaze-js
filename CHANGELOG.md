@@ -10,7 +10,7 @@ All notable changes to `interfaze` are documented here. The format follows
 
 - Keyless access: with no `apiKey` and no `INTERFAZE_API_KEY`, `new Interfaze()` constructs and sends requests without an `Authorization` header, instead of throwing `InterfazeError`. It never falls back to `OPENAI_API_KEY` or `OPENAI_ADMIN_KEY`. An explicit `apiKey` takes precedence over `INTERFAZE_API_KEY`, and an empty or whitespace-only key counts as no key. A new key from `client.openai.withOptions({ apiKey })` is sent. A caller `Authorization` header counts as a key. Keyless access needs a release of `interfaze` later than 1.0.3.
 - A keyless client throws `InterfazeError` before any request when `'document' in globalThis`, also with `dangerouslyAllowBrowser: true`. The API does not accept keyless requests from a browser.
-- When the keyless daily limit is reached, the client throws the `429` without a retry, unless the limit resets within the next minute. A `401` and an in-flight `429` keep their behavior.
+- When the keyless daily limit is reached, the client throws the `429` and does not retry it while the reset is more than a minute away. A `401` and an in-flight `429` keep their behavior.
 
 ### Changed
 
