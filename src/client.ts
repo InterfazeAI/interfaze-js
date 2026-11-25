@@ -45,6 +45,13 @@ function hasAuthorization(headers: Record<string, unknown>): boolean {
   return Object.entries(headers).some(([name, value]) => name.toLowerCase() === "authorization" && typeof value === "string" && value.trim() !== "");
 }
 
+declare const importScripts: unknown;
+
+// Every browser worker defines importScripts, and Cloudflare Workers defines WorkerGlobalScope but not importScripts.
+function isBrowserRuntime(): boolean {
+  return "document" in globalThis || typeof importScripts === "function";
+}
+
 /** Sends no `Authorization` header while the key is the stand-in, also after `withOptions` with no key or a blank key. */
 class InterfazeOpenAI extends OpenAI {
   override withOptions(options: Partial<ClientOptions>): this {
@@ -76,7 +83,7 @@ export class Interfaze {
     const callerHeaders = headerRecord(defaultHeaders);
     const callerAuthorization = hasAuthorization(callerHeaders);
     // A browser cannot hide a key and the API rejects keyless browser requests, so a keyless client fails before any request.
-    if (!resolvedKey && !callerAuthorization && "document" in globalThis) throw new InterfazeError(MISSING_KEY_MESSAGE);
+    if (!resolvedKey && !callerAuthorization && isBrowserRuntime()) throw new InterfazeError(MISSING_KEY_MESSAGE);
 
     const headers = callerHeaders as Record<string, string | null>;
     if (showAdditionalInfo) headers[HEADERS.showAdditionalInfo] = "true";

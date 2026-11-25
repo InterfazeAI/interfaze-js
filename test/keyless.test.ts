@@ -135,5 +135,28 @@ describe("keyless credentials", () => {
 
       expect(() => new Interfaze(options)).not.toThrow();
     });
+
+    it("throws InterfazeError with no key when importScripts exists", () => {
+      vi.stubGlobal("importScripts", () => {});
+
+      expect(() => new Interfaze()).toThrow(InterfazeError);
+    });
+
+    it("stays keyless in a runtime that defines WorkerGlobalScope but not importScripts", async () => {
+      vi.stubGlobal("WorkerGlobalScope", class {});
+      vi.stubGlobal("ServiceWorkerGlobalScope", class {});
+      const { interfaze, calls } = mockInterfaze(() => jsonResponse(completion()), { apiKey: undefined });
+      await interfaze.chat.completions.create({ messages: MESSAGES });
+
+      expect(calls[0]!.headers.has("authorization")).toBe(false);
+    });
+
+    it("sends the key when importScripts exists", async () => {
+      vi.stubGlobal("importScripts", () => {});
+      const { interfaze, calls } = mockInterfaze(() => jsonResponse(completion()), { apiKey: EXPLICIT_KEY });
+      await interfaze.chat.completions.create({ messages: MESSAGES });
+
+      expect(calls[0]!.headers.get("authorization")).toBe(`Bearer ${EXPLICIT_KEY}`);
+    });
   });
 });
