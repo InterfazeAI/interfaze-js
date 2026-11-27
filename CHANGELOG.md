@@ -6,6 +6,11 @@ All notable changes to `interfaze` are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Keyless access: in server-side code with no API key, `new Interfaze()` sends requests without an `Authorization` header, instead of throwing `InterfazeError`. Keyless access needs a release of `interfaze` later than 1.0.3.
+- A keyless client warns once per process, and `Interfaze.isKeyless` is `true` when the client sends no `Authorization` header.
+
 ### Changed
 
 - **BREAKING:** renamed the `bypassMoe` client option to `bypassMoA` (its header is now `x-interfaze-bypass-moa`), matching the server's mixture-of-architectures router. The `bypassCache` header also moved to `x-interfaze-bypass-cache`; `x-show-additional-info` and `x-admin-key` are unchanged. Consumers passing `bypassMoe` must rename it to `bypassMoA`.

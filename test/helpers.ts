@@ -52,10 +52,10 @@ export function jsonResponse(data: unknown): Response {
   });
 }
 
-export function errorResponse(status: number, error: unknown): Response {
+export function errorResponse(status: number, error: unknown, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify({ error }), {
     status,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...headers },
   });
 }
 

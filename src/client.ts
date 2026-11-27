@@ -33,8 +33,47 @@ function headerRecord(given: ClientOptions["defaultHeaders"]): Record<string, un
   return { ...given };
 }
 
-function envKey(): string | undefined {
-  return typeof process !== "undefined" && process.env ? process.env["INTERFAZE_API_KEY"] : undefined;
+function envVar(name: string): string | undefined {
+  return typeof process !== "undefined" && process.env ? process.env[name] : undefined;
+}
+
+/** Stands in for a missing key, because openai rejects an empty key and otherwise reads OPENAI_API_KEY. */
+const KEYLESS_STAND_IN_KEY = "interfaze-keyless";
+const MISSING_KEY_MESSAGE = "Interfaze does not accept keyless requests from a browser. Pass an API key: `new Interfaze({ apiKey })`.";
+const KEYLESS_WARNING = "Interfaze SDK is running in keyless mode. For higher rate limits, get an API key at https://interfaze.ai/dashboard.";
+const keylessWarning = { shown: false };
+
+function hasAuthorization(headers: Record<string, unknown>): boolean {
+  return Object.entries(headers).some(([name, value]) => name.toLowerCase() === "authorization" && typeof value === "string" && value.trim() !== "");
+}
+
+function warnKeylessOnce(): void {
+  if (keylessWarning.shown) return;
+  keylessWarning.shown = true;
+  console.warn(KEYLESS_WARNING);
+}
+
+declare const importScripts: unknown;
+
+// Every browser worker defines importScripts, and Cloudflare Workers defines WorkerGlobalScope but not importScripts.
+function isBrowserRuntime(): boolean {
+  return "document" in globalThis || typeof importScripts === "function";
+}
+
+/** Sends no `Authorization` header while the key is the stand-in, also after `withOptions` with no key or a blank key. */
+class InterfazeOpenAI extends OpenAI {
+  override withOptions(options: Partial<ClientOptions>): this {
+    const { apiKey } = options;
+    return super.withOptions(typeof apiKey === "string" ? { ...options, apiKey: apiKey.trim() || KEYLESS_STAND_IN_KEY } : options);
+  }
+
+  protected override async bearerAuth(...args: Parameters<OpenAI["bearerAuth"]>) {
+    return this.apiKey === KEYLESS_STAND_IN_KEY ? undefined : super.bearerAuth(...args);
+  }
+
+  protected override validateHeaders(...args: Parameters<OpenAI["validateHeaders"]>) {
+    if (this.apiKey !== KEYLESS_STAND_IN_KEY) super.validateHeaders(...args);
+  }
 }
 
 /** Interfaze API client — an OpenAI-compatible client wired to the Interfaze endpoint. */
@@ -43,24 +82,33 @@ export class Interfaze {
   readonly chat: InterfazeChat;
   readonly models: OpenAI["models"];
   readonly tasks: Tasks;
+  /** `true` when the client sends no `Authorization` header. */
+  readonly isKeyless: boolean;
 
   constructor(options: InterfazeOptions = {}) {
     const { showAdditionalInfo, bypassMoA, bypassCache, adminKey, apiKey, baseURL, defaultHeaders, ...rest } = options;
 
-    const resolvedKey = apiKey ?? envKey();
-    if (!resolvedKey) {
-      throw new InterfazeError("Missing API key. Pass `new Interfaze({ apiKey })` or set the INTERFAZE_API_KEY environment variable.");
-    }
+    const explicitKey = typeof apiKey === "string" ? apiKey.trim() : apiKey;
+    const resolvedKey = explicitKey || envVar("INTERFAZE_API_KEY")?.trim();
+    const callerHeaders = headerRecord(defaultHeaders);
+    const callerAuthorization = hasAuthorization(callerHeaders);
+    const keyless = !resolvedKey && !callerAuthorization;
+    // A browser cannot hide a key and the API rejects keyless browser requests, so a keyless client fails before any request.
+    if (keyless && isBrowserRuntime()) throw new InterfazeError(MISSING_KEY_MESSAGE);
+    if (keyless) warnKeylessOnce();
+    this.isKeyless = keyless;
 
-    const headers = headerRecord(defaultHeaders) as Record<string, string | null>;
+    const headers = callerHeaders as Record<string, string | null>;
     if (showAdditionalInfo) headers[HEADERS.showAdditionalInfo] = "true";
     if (bypassMoA) headers[HEADERS.bypassMoA] = "true";
     if (bypassCache) headers[HEADERS.bypassCache] = "true";
     if (adminKey) headers[HEADERS.adminKey] = adminKey;
 
-    this.openai = new OpenAI({
+    this.openai = new InterfazeOpenAI({
       ...rest,
-      apiKey: resolvedKey,
+      apiKey: resolvedKey || KEYLESS_STAND_IN_KEY,
+      // Left undefined, this falls back to OPENAI_ADMIN_KEY, and the openai client would send that key to Interfaze.
+      adminAPIKey: rest.adminAPIKey ?? null,
       baseURL: baseURL ?? INTERFAZE_BASE_URL,
       defaultHeaders: headers,
       timeout: rest.timeout ?? DEFAULT_TIMEOUT_MS,
